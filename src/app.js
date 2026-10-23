@@ -7,6 +7,7 @@
   const MIN_YEAR = 1920;
   let worker = null;
   let stats = null;
+  let timeline = null;
   let profile = loadProfile();
 
   // The profile is a per-viewer convenience, so storage failures (private mode) are fine to ignore.
@@ -33,7 +34,7 @@
       $("bornMonth").value = profile.birth.month;
     }
     const persona = SpotifyPersona.persona.buildPersona(stats, profile);
-    SpotifyPersona.render(stats, persona, {
+    SpotifyPersona.render(stats, persona, timeline, {
       onRemoveChapter: index => {
         profile.chapters.splice(index, 1);
         saveProfile();
@@ -56,6 +57,7 @@
       } else if (data.type === "done") {
         worker.terminate();
         stats = data.stats;
+        timeline = data.timeline;
         show();
         $("upload").hidden = true;
         $("result").hidden = false;

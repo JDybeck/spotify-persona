@@ -161,6 +161,18 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .up { color: var(--g-indie); }
 .down { color: var(--g-metal); }
 
+/* Explore */
+.year-head .big { font-size: clamp(2.6rem, 9vw, 5rem); }
+.clocks-title { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; }
+.clocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+.clock { margin: 0; display: grid; gap: 6px; justify-items: center; min-width: 0; }
+.clock svg { width: 100%; max-width: 300px; height: auto; }
+.clock figcaption { font-family: var(--mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.clock .spoke { stroke: var(--rule); stroke-width: 1; }
+.clock .wedge { fill: var(--sunset); }
+.clock .wedge.night { fill: var(--g-chill); }
+.clock .clock-label { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+
 /* Life stages */
 .born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .born label { font-family: var(--mono); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

@@ -111,11 +111,15 @@
     <div class="eras" id="eras"></div>
   </section>
 
-  <section id="yearSection">
-    <div class="eyebrow">Year by year</div>
-    <h2>Pick a year</h2>
-    <div class="year-chips" id="yearChips" role="tablist" aria-label="Years"></div>
-    <div class="year-detail" id="yearDetail" role="tabpanel"></div>
+  <section id="explore">
+    <div class="eyebrow">Explore</div>
+    <h2>Dig into any period</h2>
+    <div class="year-chips" id="rangeChips" role="tablist" aria-label="Time range"></div>
+    <div class="born">
+      <label for="genreFilter">Genre</label>
+      <select id="genreFilter"></select>
+    </div>
+    <div class="year-detail" id="exploreDetail" role="tabpanel"></div>
   </section>
 
   <section id="life">
@@ -177,6 +181,8 @@
 </main>
 
 <script src="src/genres.js"></script>
+<script src="src/analyze.js"></script>
+<script src="src/explore.js"></script>
 <script src="src/vibes.js"></script>
 <script src="src/persona.js"></script>
 <script src="src/render.js"></script>

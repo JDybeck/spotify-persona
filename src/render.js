@@ -3,6 +3,7 @@
   const fmt = n => Math.round(n).toLocaleString("sv-SE");
   const pct = r => `${Math.round(r * 100)}%`;
   const pad = h => String(h).padStart(2, "0");
+  const duration = h => (h < 1 ? `${Math.round(h * 60)} min` : `${fmt(h)} h`);
   const NIGHT = [22, 23, 0, 1, 2, 3];
   const genreVar = key => `var(--g-${key || "other"})`;
   const $ = id => document.getElementById(id);
@@ -188,68 +189,132 @@
     }));
   }
 
-  let selectedYear = null;
+  // Explore view state survives re-renders (adding a chapter should not reset the chosen range).
+  const exploreState = { range: "12m", genre: "" };
+  const SVG_NS = "http://www.w3.org/2000/svg";
 
-  function yearDetail(b) {
-    const head = [el("b", { text: `${fmt(b.hours)} hours` }), `, about ${b.perDay.toFixed(1)} a day.`];
-    if (b.change !== null) {
-      head.push(" ", el("span", { class: b.change >= 0 ? "up" : "down", text: `${b.change >= 0 ? "+" : "−"}${pct(Math.abs(b.change))}` }), " vs the year before.");
-    }
-    if (b.age !== null && b.age >= 0) head.push(` You were ${b.age}.`);
-    if (b.chapters.length) head.push(" ", el("b", { text: b.chapters.join(" · ") }));
+  function svg(tag, attrs = {}, kids = []) {
+    const e = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    for (const k of [].concat(kids)) e.append(k);
+    return e;
+  }
+
+  /** A 24-hour radial chart: midnight at the top, running clockwise, wedge length proportional to the value. */
+  function radialClock(values, label, unit) {
+    const max = Math.max(...values, 1);
+    const R = 100;
+    // Degrees clockwise from 12 o'clock to an [x, y] point.
+    const point = (deg, r) => {
+      const rad = (deg - 90) * Math.PI / 180;
+      return [(Math.cos(rad) * r).toFixed(2), (Math.sin(rad) * r).toFixed(2)];
+    };
+    const spokes = values.map((_, h) => {
+      const [x2, y2] = point(h * 15, R + 8);
+      return svg("line", { x1: 0, y1: 0, x2, y2, class: "spoke" });
+    });
+    const wedges = values.map((v, h) => {
+      const r = v / max * R;
+      if (r <= 0) return "";
+      const wedge = svg("path", {
+        d: `M0,0 L${point(h * 15 + 1, r).join(",")} A${r},${r} 0 0 1 ${point(h * 15 + 14, r).join(",")} Z`,
+        class: NIGHT.includes(h) ? "wedge night" : "wedge"
+      });
+      wedge.append(svg("title", {}, `${pad(h)}:00 · ${fmt(v)} ${unit}`));
+      return wedge;
+    });
+    const labels = [0, 6, 12, 18].map(h => {
+      const [x, y] = point(h * 15, R + 20);
+      return svg("text", { x, y, class: "clock-label", "text-anchor": "middle", "dominant-baseline": "middle" }, pad(h));
+    });
+    return el("figure", { class: "clock" }, [
+      svg("svg", { viewBox: "-135 -135 270 270", role: "img", "aria-label": `${label} by hour of day` }, [...spokes, ...wedges, ...labels]),
+      el("figcaption", { text: label })
+    ]);
+  }
+
+  function rangeNote(range, persona) {
+    if (!range.year) return [range.key === "all" ? "Everything since your first stream." : `Counting back from your last stream.`];
+    const b = persona.yearByYear.find(y => y.year === range.year);
+    const note = [];
+    if (b.change !== null) note.push(el("span", { class: b.change >= 0 ? "up" : "down", text: `${b.change >= 0 ? "+" : "−"}${pct(Math.abs(b.change))}` }), " vs the year before. ");
+    note.push(`About ${b.perDay.toFixed(1)} hours a day. ${fmt(b.newArtists)} new artists discovered.`);
+    if (b.skipRate !== null) note.push(` ${pct(b.skipRate)} skipped.`);
+    if (b.age !== null && b.age >= 0) note.push(` You were ${b.age}.`);
+    if (b.chapters.length) note.push(" ", el("b", { text: b.chapters.join(" · ") }));
+    if (b.countries.length) note.push(el("br"), "Streaming from ", countryLine(b.countries), ".");
+    return note;
+  }
+
+  function exploreDetail(result, range, persona) {
+    const head = el("div", { class: "year-head" }, [el("span", { class: "big num", text: range.label }), el("p", {}, rangeNote(range, persona))]);
+    if (result.streams === 0) return [head, el("p", { class: "lede", text: "Nothing played in this range." })];
 
     const tiles = [
-      [fmt(b.plays), "plays"],
-      [fmt(b.distinctArtists), "artists"],
-      [fmt(b.newArtists), "new artists"]
+      [fmt(result.streams), "streams"],
+      [fmt(result.minutes), "minutes streamed"],
+      [fmt(result.hours), "hours streamed"],
+      [fmt(result.tracks), "different tracks"],
+      [fmt(result.artists), "different artists"]
     ];
-    if (b.skipRate !== null) tiles.push([pct(b.skipRate), "skipped"]);
-
-    const maxArtist = b.topArtists.length ? b.topArtists[0].hours : 1;
-    const foot = [];
-    if (b.mix.length) {
-      foot.push(el("div", { class: "dna small", role: "img", "aria-label": "Genre mix" },
-        b.mix.map(s => el("i", { style: `width:${s.share * 100}%;background:${genreVar(s.key)}`, title: `${s.label} ${pct(s.share)}` }))));
-      foot.push(el("p", {}, [el("b", { text: "Sound: " }), b.mix.slice(0, 3).map(s => `${s.label} ${pct(s.share)}`).join(" · ")]));
-    }
-    if (b.countries.length) foot.push(el("p", {}, [el("b", { text: "Streaming from: " }), countryLine(b.countries)]));
+    if (result.albums !== null) tiles.push([fmt(result.albums), "different albums"]);
+    const maxArtist = result.topArtists.length ? result.topArtists[0].hours : 1;
 
     return [
-      el("div", { class: "year-head" }, [el("span", { class: "big num", text: String(b.year) }), el("p", {}, head)]),
+      head,
       el("div", { class: "tiles" }, tiles.map(([value, label]) => el("div", { class: "tile" }, [el("b", { class: "num", text: value }), el("span", { text: label })]))),
       el("div", { class: "year-cols" }, [
-        el("div", {}, [el("h3", { text: "Top artists" }), el("ol", { class: "ranked" }, b.topArtists.map(a => el("li", {}, [
+        el("div", {}, [el("h3", { text: "Top artists" }), el("ol", { class: "ranked" }, result.topArtists.map(a => el("li", {}, [
           el("span", { text: a.name }),
-          el("span", { class: "stat num", text: `${fmt(a.hours)} h` }),
+          el("span", { class: "stat num", text: duration(a.hours) }),
           el("div", { class: "meter" }, el("i", { style: `width:${a.hours / maxArtist * 100}%` }))
         ])))]),
-        el("div", {}, [el("h3", { text: "Top songs" }), el("ol", { class: "ranked" }, b.topTracks.map(t => el("li", {}, [
+        el("div", {}, [el("h3", { text: "Top songs" }), el("ol", { class: "ranked" }, result.topTracks.map(t => el("li", {}, [
           el("span", {}, [t.track, el("small", { text: t.artist })]),
           el("span", { class: "stat num", text: `${fmt(t.plays)} plays` })
         ])))])
       ]),
-      foot.length ? el("div", { class: "year-foot" }, foot) : ""
+      result.mix.length > 1 ? el("div", { class: "year-foot" }, [
+        el("div", { class: "dna small", role: "img", "aria-label": "Genre mix" },
+          result.mix.map(s => el("i", { style: `width:${s.share * 100}%;background:${genreVar(s.key)}`, title: `${s.label} ${pct(s.share)}` }))),
+        el("p", {}, [el("b", { text: "Sound: " }), result.mix.filter(s => s.share >= 0.01).slice(0, 4).map(s => `${s.label} ${pct(s.share)}`).join(" · ")])
+      ]) : "",
+      el("div", {}, [
+        el("h3", { class: "clocks-title", text: "Listening clocks" }),
+        el("div", { class: "clocks" }, [radialClock(result.clock.streams, "streams", "streams"), radialClock(result.clock.minutes, "minutes streamed", "min")])
+      ])
     ];
   }
 
-  function yearByYear(persona) {
-    const years = persona.yearByYear;
-    if (!years.some(b => b.year === selectedYear)) selectedYear = years[years.length - 1].year;
-    const select = year => {
-      selectedYear = year;
-      for (const chip of $("yearChips").children) chip.setAttribute("aria-selected", String(Number(chip.dataset.year) === year));
-      fill("yearDetail", yearDetail(years.find(b => b.year === year)));
+  function explore(stats, persona, timeline) {
+    const api = SpotifyPersona.explore;
+    const ranges = api.ranges(stats);
+    if (!ranges.some(r => r.key === exploreState.range)) exploreState.range = "12m";
+
+    const genreSelect = $("genreFilter");
+    genreSelect.replaceChildren(el("option", { value: "", text: "All genres" }),
+      ...api.availableGenres(timeline).map(g => el("option", { value: g.key, text: g.label })));
+    if (![...genreSelect.options].some(o => o.value === exploreState.genre)) exploreState.genre = "";
+    genreSelect.value = exploreState.genre;
+
+    const update = () => {
+      const range = ranges.find(r => r.key === exploreState.range);
+      for (const chip of $("rangeChips").children) chip.setAttribute("aria-selected", String(chip.dataset.range === range.key));
+      fill("exploreDetail", exploreDetail(api.query(timeline, range, exploreState.genre || null), range, persona));
     };
-    fill("yearChips", years.map(b => {
-      const chip = el("button", { type: "button", role: "tab", "data-year": String(b.year), text: String(b.year) });
-      chip.addEventListener("click", () => select(b.year));
+
+    fill("rangeChips", ranges.map(r => {
+      const chip = el("button", { type: "button", role: "tab", "data-range": r.key, text: r.label });
+      chip.addEventListener("click", () => { exploreState.range = r.key; update(); });
       return chip;
     }));
+    genreSelect.onchange = () => { exploreState.genre = genreSelect.value; update(); };
     $("years").querySelectorAll(".col").forEach((col, i) => col.addEventListener("click", () => {
-      select(years[i].year);
-      $("yearSection").scrollIntoView({ block: "start", behavior: "smooth" });
+      exploreState.range = `y${stats.years[i].year}`;
+      update();
+      $("explore").scrollIntoView({ block: "start", behavior: "smooth" });
     }));
-    select(selectedYear);
+    update();
   }
 
   function clock(stats) {
@@ -270,7 +335,7 @@
     ])));
   }
 
-  function render(stats, persona, handlers = {}) {
+  function render(stats, persona, timeline, handlers = {}) {
     hero(stats, persona);
     traits(persona);
     lineup(stats);
@@ -279,7 +344,7 @@
     vibes(persona);
     skips(stats);
     tour(stats, persona);
-    yearByYear(persona);
+    explore(stats, persona, timeline);
     life(persona);
     chapters(persona, handlers.onRemoveChapter || (() => {}));
     clock(stats);

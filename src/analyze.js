@@ -37,7 +37,7 @@
       };
       if (raw.episode_show_name) return { ...base, kind: "podcast", show: raw.episode_show_name };
       if (raw.master_metadata_album_artist_name && raw.master_metadata_track_name) {
-        return { ...base, kind: "music", artist: raw.master_metadata_album_artist_name, track: raw.master_metadata_track_name };
+        return { ...base, kind: "music", artist: raw.master_metadata_album_artist_name, track: raw.master_metadata_track_name, album: raw.master_metadata_album_album_name || null };
       }
       return null;
     }
@@ -46,7 +46,7 @@
       const base = { date: new Date(raw.endTime.replace(" ", "T") + "Z"), ms: raw.msPlayed || 0, skipped: null, shuffle: null, incognito: null, country: null };
       if (raw.podcastName) return { ...base, kind: "podcast", show: raw.podcastName };
       if (raw.artistName && raw.trackName && raw.artistName !== "Unknown Artist") {
-        return { ...base, kind: "music", artist: raw.artistName, track: raw.trackName };
+        return { ...base, kind: "music", artist: raw.artistName, track: raw.trackName, album: null };
       }
       return null;
     }
@@ -60,8 +60,74 @@
   const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const topEntries = (map, n) => [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 
+  /** Local calendar day as a whole number, so ranges can be compared without time zones getting in the way. */
+  const dayNumber = (year, monthIndex, day) => Math.round(Date.UTC(year, monthIndex, day) / 86400000);
+
+  /**
+   * Compact table of listening per (local day, hour, track), so any date range can be queried later.
+   * Rows end up in typed arrays that can be transferred from the worker without copying.
+   */
+  function createTimelineBuilder() {
+    const trackIds = new Map(), artistIds = new Map(), albumIds = new Map();
+    const trackNames = [], trackArtist = [], trackAlbum = [], artistNames = [];
+    const rowIndex = new Map();
+    const slot = [], track = [], streams = [], plays = [], ms = [];
+
+    function intern(map, value, names) {
+      let id = map.get(value);
+      if (id === undefined) {
+        id = map.size;
+        map.set(value, id);
+        if (names) names.push(value);
+      }
+      return id;
+    }
+
+    function add(r) {
+      const d = r.date;
+      const key = trackKey(r.track, r.artist);
+      let id = trackIds.get(key);
+      if (id === undefined) {
+        id = trackIds.size;
+        trackIds.set(key, id);
+        trackNames.push(r.track);
+        trackArtist.push(intern(artistIds, r.artist, artistNames));
+        trackAlbum.push(r.album ? intern(albumIds, `${r.album}\u0000${r.artist}`) : -1);
+      }
+      const s = dayNumber(d.getFullYear(), d.getMonth(), d.getDate()) * 24 + d.getHours();
+      let rows = rowIndex.get(s);
+      if (!rows) rowIndex.set(s, rows = new Map());
+      let i = rows.get(id);
+      if (i === undefined) {
+        i = slot.length;
+        rows.set(id, i);
+        slot.push(s); track.push(id); streams.push(0); plays.push(0); ms.push(0);
+      }
+      streams[i]++;
+      if (r.ms >= MIN_PLAY_MS) plays[i]++;
+      ms[i] += r.ms;
+    }
+
+    function build() {
+      return {
+        trackNames,
+        artistNames,
+        trackArtist: Uint32Array.from(trackArtist),
+        trackAlbum: Int32Array.from(trackAlbum),
+        slot: Int32Array.from(slot),
+        track: Uint32Array.from(track),
+        streams: Uint32Array.from(streams),
+        plays: Uint32Array.from(plays),
+        ms: Float64Array.from(ms)
+      };
+    }
+
+    return { add, build };
+  }
+
   /** Incremental aggregator, so files can be fed one at a time without holding them all in memory. */
   function createAggregator() {
+    const timeline = createTimelineBuilder();
     const artistMs = new Map(), artistPlays = new Map(), artistYears = new Map();
     const artistStarts = new Map(), artistSkips = new Map();
     const trackMs = new Map(), trackPlays = new Map(), trackStarts = new Map(), trackSkips = new Map();
@@ -82,6 +148,7 @@
       const d = r.date, year = d.getFullYear(), key = trackKey(r.track, r.artist);
       records++;
       totalMs += r.ms;
+      timeline.add(r);
       add(artistMs, r.artist, r.ms);
       add(trackMs, key, r.ms);
       add(yearMs, year, r.ms);
@@ -223,8 +290,8 @@
       };
     }
 
-    return { addRecord, finish };
+    return { addRecord, finish, timeline: timeline.build };
   }
 
-  return { createAggregator, normalize, isHistoryFile, MIN_PLAY_MS, MIN_ARTIST_STARTS_FOR_SKIPS, MIN_PROFILE_PLAYS };
+  return { createAggregator, normalize, isHistoryFile, dayNumber, MIN_PLAY_MS, MIN_ARTIST_STARTS_FOR_SKIPS, MIN_PROFILE_PLAYS };
 });

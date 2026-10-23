@@ -1,6 +1,8 @@
 # Spotify Persona
 
-Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you: an archetype, your all-time festival lineup, genre mix, most played and most skipped songs, listening eras, a year-by-year breakdown and a few embarrassing receipts.
+Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you: an archetype, your all-time festival lineup, genre mix, most played and most skipped songs, listening eras, song vibes and a few embarrassing receipts.
+
+The **Explore** view digs into any period: the last 4 weeks, 6 or 12 months, any specific year or all time, optionally filtered to one genre. It shows streams, minutes, distinct tracks, artists and albums, top artists and songs, the genre mix and listening clocks by hour of day.
 
 Add your birth month and year to see the soundtrack of each life stage (teenage years, early twenties and so on). Add your own chapters, like where you grew up, where you studied or the years you lived abroad, to see what you listened to then and which countries you streamed from. These details are only saved in your browser.
 
@@ -33,6 +35,7 @@ Any static file server works, for example `python -m http.server`.
 | --- | --- |
 | `src/analyze.js` | Normalizes both export formats and aggregates stats in one pass, file by file |
 | `src/genres.js` | Genre definitions and the artist-to-genre dictionary |
+| `src/explore.js` | Queries the per-hour timeline for any date range and genre |
 | `src/vibes.js` | Song vibes (comfort, after dark, on repeat, phase, skip bait) from listening patterns, and energy from genre |
 | `src/persona.js` | Archetype, traits, genre mix, eras and receipts derived from the stats |
 | `src/worker.js` | Unzips with [JSZip](https://stuk.github.io/jszip/) and runs the analysis off the main thread |
@@ -47,7 +50,7 @@ npm test
 
 ### Notes on the numbers
 
-- **Hours** are total time played, skipped streams included. A **play** is a stream of 30 seconds or more.
+- **Hours** are total time played, skipped streams included. A **play** is a stream of 30 seconds or more. In Explore, streams and distinct counts only include plays, matching how Spotify counts them.
 - A **skip** is a stream Spotify flagged as skipped, or one ended with the next button. Older extended records lack the flag, so the button counts too.
 - Artists need at least 100 starts to appear in the "always skip" list.
 - Times use your browser's time zone.
