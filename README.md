@@ -6,10 +6,14 @@ Drop in your Spotify data export and get a gig-poster breakdown of what your lis
 
 ## Use it
 
-1. Request your data at [spotify.com/account/privacy](https://www.spotify.com/account/privacy/).
-   - **Extended streaming history** gives the full picture: every year, skips, shuffle and private sessions. Spotify takes up to 30 days to send it.
-   - **Account data** is faster but only covers the last year and has no skip or shuffle data. It still works, and those sections are hidden.
-2. Open the site and drop the zip in. No need to unzip it.
+Live at **[jdybeck.github.io/spotify-persona](https://jdybeck.github.io/spotify-persona/)**.
+
+1. Go to [spotify.com/account/privacy](https://www.spotify.com/account/privacy/) and scroll down to the data boxes.
+2. Tick only **Extended streaming history** (top right, "Utökad streaminghistorik" in Swedish). It covers every year since you joined, including skips and shuffle. Technical log information is not needed.
+3. Press **Request data** and confirm the email. Spotify says up to 30 days, but it is often faster.
+4. Open the site and drop the zip from the download email in. No need to unzip it.
+
+The basic **Account data** export also works if that is what you have, but it only covers the last year and has no skip or shuffle data, so those sections are hidden.
 
 ## Run locally
 
