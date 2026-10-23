@@ -1,0 +1,12 @@
+# Never commit anyone's Spotify export
+*.zip
+Spotify Extended Streaming History/
+Spotify Account Data/
+MyData/
+Streaming_History_*.json
+StreamingHistory*.json
+
+node_modules/
+.claude/
+.DS_Store
+Thumbs.db

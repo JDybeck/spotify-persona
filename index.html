@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Spotify Persona</title>
+  <meta name="description" content="Drop in your Spotify data export and find out what your listening history says about you. Runs entirely in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Archivo:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="wrap" id="upload">
+  <section class="hero">
+    <div class="eyebrow">Spotify Persona</div>
+    <h1>What kind of <span>listener are you?</span></h1>
+    <p>Drop in your Spotify data export and get a gig-poster breakdown of your taste, habits and eras. Everything runs in your browser. Your data is never uploaded anywhere.</p>
+  </section>
+
+  <section>
+    <label class="drop" id="drop" for="file">
+      <strong>Drop your zip here</strong>
+      <span>or click to pick my_spotify_data.zip</span>
+      <input type="file" id="file" accept=".zip,application/zip">
+    </label>
+    <div class="progress" id="progress" hidden><i id="bar"></i></div>
+    <p id="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <div class="eyebrow">No zip yet?</div>
+    <h2>Get your data</h2>
+    <ol class="steps">
+      <li>Open <a href="https://www.spotify.com/account/privacy/" target="_blank" rel="noopener">spotify.com/account/privacy</a> and log in.</li>
+      <li>Request <b>Extended streaming history</b> for the full picture (all years, skips, shuffle). It takes up to 30 days.</li>
+      <li>The faster <b>Account data</b> export also works, but only covers the last year and has no skip data.</li>
+      <li>When Spotify emails you, download the zip and drop it above. No need to unzip.</li>
+    </ol>
+  </section>
+</main>
+
+<main class="wrap" id="result" hidden>
+  <section class="hero">
+    <div class="eyebrow">Your Spotify personality</div>
+    <h1 id="title"></h1>
+    <div class="tour" id="tour"></div>
+    <p id="description"></p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Character sheet</div>
+    <h2>Your stats</h2>
+    <div class="traits" id="traits"></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">All-time lineup, sized by hours played</div>
+    <h2>Your festival</h2>
+    <div class="poster" id="poster"></div>
+  </section>
+
+  <section id="genres">
+    <div class="eyebrow">Genre DNA</div>
+    <h2>What you're made of</h2>
+    <div class="dna" id="dna" role="img" aria-label="Genre share bar"></div>
+    <div class="legend" id="legend"></div>
+    <p class="lede" id="dnaNote"></p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Most played, all time</div>
+    <h2>The setlist</h2>
+    <ol class="setlist" id="setlist"></ol>
+  </section>
+
+  <section id="skips">
+    <div class="eyebrow">Next track, please</div>
+    <h2>The skip button</h2>
+    <p class="lede" id="skipNote"></p>
+    <div class="skips">
+      <div>
+        <h3>Most skipped songs</h3>
+        <ol class="skiplist" id="skipSongs"></ol>
+      </div>
+      <div id="skipArtistsBlock">
+        <h3>Artists you almost always skip</h3>
+        <ol class="skiplist" id="skipArtists"></ol>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Hours per year</div>
+    <h2>The tour so far</h2>
+    <div>
+      <div class="years" id="years" role="img" aria-label="Listening hours per year"></div>
+      <div class="years-axis" id="yearsAxis"></div>
+    </div>
+    <div class="eras" id="eras"></div>
+  </section>
+
+  <section id="life">
+    <div class="eyebrow">Soundtrack of your life</div>
+    <h2>The times of your life</h2>
+    <form class="born" id="bornForm">
+      <label for="bornMonth">Born</label>
+      <select id="bornMonth" aria-label="Birth month">
+        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+      </select>
+      <input id="bornYear" type="number" inputmode="numeric" min="1920" max="2030" placeholder="Year" aria-label="Birth year">
+      <button type="submit" class="again">Show my life stages</button>
+    </form>
+    <p class="lede" id="lifeNote"></p>
+    <div class="stages" id="stages"></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Hour of day</div>
+    <h2>When the music plays</h2>
+    <div>
+      <div class="hours" id="hours" role="img" aria-label="Listening hours by hour of day"></div>
+      <div class="hours-axis" id="hoursAxis"></div>
+    </div>
+    <p class="lede" id="clockNote"></p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Evidence</div>
+    <h2>The receipts</h2>
+    <div class="receipts" id="receipts"></div>
+  </section>
+
+  <footer>
+    <span id="foot"></span>
+    <button type="button" class="again" id="again">Try another zip</button>
+  </footer>
+</main>
+
+<script src="src/genres.js"></script>
+<script src="src/persona.js"></script>
+<script src="src/render.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>

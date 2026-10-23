@@ -1,0 +1,152 @@
+/* Layout: a night-time gig poster. Hero headline, then lineup, setlist and tour dates stacked in one 960px column. */
+:root {
+  --night: #15121b;
+  --stage: #1f1a27;
+  --rule: #352d40;
+  --bar: #554a64;
+  --ink: #f2ece4;
+  --muted: #a99fb3;
+  --sunset: #ff7a45;
+  --error: #ff8a8a;
+  --g-core: #ff7a45; --g-punk: #ffc145; --g-metal: #e8586a; --g-rock: #d9b38c; --g-indie: #9ccf6b;
+  --g-edm: #4fc3f7; --g-pop: #ff8fc8; --g-hiphop: #8fa3ff; --g-chill: #c58cff; --g-score: #7ed6a5; --g-other: #6c6475;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+[hidden] { display: none !important; }
+.wrap { max-width: 960px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 48px 64px; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: .95; }
+h2 { font-size: clamp(2.2rem, 6vw, 3.4rem); font-weight: 900; text-transform: uppercase; letter-spacing: .01em; }
+.eyebrow { font-family: var(--mono); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--sunset); }
+.lede { color: var(--muted); max-width: 62ch; margin: 0; }
+section { display: grid; gap: 24px; min-width: 0; }
+.num { font-variant-numeric: tabular-nums; }
+a { color: var(--sunset); }
+button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid var(--sunset); outline-offset: 3px; }
+
+/* Upload */
+.drop { border: 2px dashed var(--rule); border-radius: 8px; padding: clamp(28px, 6vw, 56px) 20px; display: grid; gap: 12px; justify-items: center; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+.drop.over, .drop:hover { border-color: var(--sunset); background: var(--stage); }
+.drop strong { font-family: var(--display); font-size: clamp(1.6rem, 5vw, 2.4rem); font-weight: 800; text-transform: uppercase; }
+.drop span { color: var(--muted); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.progress { height: 8px; background: var(--stage); border-radius: 4px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--sunset); transition: width .2s; }
+#status { font-family: var(--mono); font-size: .85rem; color: var(--muted); margin: 0; min-height: 1.5em; }
+#status.error { color: var(--error); }
+.steps { margin: 0; padding-left: 1.3em; color: var(--muted); display: grid; gap: 6px; max-width: 62ch; }
+.steps b { color: var(--ink); font-weight: 600; }
+.again { justify-self: start; font: 500 .85rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: var(--stage); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 16px; cursor: pointer; }
+.again:hover { border-color: var(--sunset); }
+
+/* Hero */
+.hero { gap: 20px; }
+.hero h1 { font-size: clamp(3.2rem, 13vw, 8rem); font-weight: 900; text-transform: uppercase; letter-spacing: -.01em; }
+.hero h1 span { color: var(--sunset); display: block; }
+.tour { font-family: var(--mono); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-block: 1px solid var(--rule); padding-block: 10px; display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.tour b { color: var(--ink); font-weight: 500; }
+.hero p { font-size: 1.2rem; max-width: 60ch; margin: 0; }
+
+/* Traits */
+.traits { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px 40px; }
+.trait { display: grid; gap: 8px; min-width: 0; }
+.trait-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.trait-head h3 { font-size: 1.6rem; font-weight: 800; text-transform: uppercase; }
+.trait-head .num { font-family: var(--mono); color: var(--sunset); }
+.meter { height: 8px; background: var(--stage); border-radius: 4px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--sunset); border-radius: 4px; }
+.trait p { margin: 0; color: var(--muted); font-size: .95rem; }
+
+/* Lineup */
+.poster { border: 1px solid var(--rule); padding: clamp(20px, 4vw, 40px); text-align: center; display: grid; gap: 18px; }
+.poster .tier { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px .7em; font-family: var(--display); text-transform: uppercase; line-height: 1.05; }
+.tier.t1 { font-size: clamp(2.2rem, 8vw, 4.4rem); font-weight: 900; flex-direction: column; align-items: center; }
+.tier.t2 { font-size: clamp(1.4rem, 4.2vw, 2.3rem); font-weight: 800; }
+.tier.t2 span:nth-child(even) { color: var(--sunset); }
+.tier.t3 { font-size: clamp(1rem, 2.6vw, 1.35rem); font-weight: 600; color: var(--muted); }
+.poster .dates { font-family: var(--mono); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+/* Genre DNA */
+.dna { display: flex; height: 44px; border-radius: 6px; overflow: hidden; }
+.dna i { display: block; height: 100%; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 32px; }
+.legend div { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: baseline; min-width: 0; }
+.legend .sw { width: 14px; height: 14px; border-radius: 3px; align-self: center; }
+.legend .num { font-family: var(--mono); }
+
+/* Setlist */
+.setlist { list-style: none; margin: 0; padding: 0; display: grid; counter-reset: s; font-family: var(--mono); }
+.setlist li { counter-increment: s; display: grid; grid-template-columns: 2.4em 1fr auto; gap: 12px; padding-block: 10px; border-bottom: 1px dashed var(--rule); align-items: baseline; min-width: 0; }
+.setlist li::before { content: counter(s, decimal-leading-zero); color: var(--sunset); }
+.setlist .song { min-width: 0; }
+.setlist .song b { font-family: var(--body); font-weight: 600; font-size: 1.05rem; display: block; }
+.setlist .song span { color: var(--muted); font-size: .85rem; }
+.setlist .plays { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+
+/* Skips */
+.skips { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 48px; }
+.skips > div { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.skips h3 { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; }
+.skiplist { list-style: none; margin: 0; padding: 0; display: grid; }
+.skiplist li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding-block: 9px; border-bottom: 1px dashed var(--rule); align-items: baseline; min-width: 0; }
+.skiplist .who { min-width: 0; }
+.skiplist .who b { font-weight: 600; display: block; }
+.skiplist .who span { color: var(--muted); font-size: .85rem; }
+.skiplist .stat { font-family: var(--mono); font-size: .82rem; color: var(--muted); text-align: right; white-space: nowrap; }
+.skiplist .stat b { color: var(--ink); font-weight: 500; }
+.skiplist .meter { grid-column: 1 / 3; height: 5px; }
+.chip { display: inline-block; font-family: var(--mono); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--night); background: var(--g-punk); border-radius: 3px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+
+/* Eras */
+.years { display: grid; gap: 4px; align-items: end; height: 220px; }
+.years .col { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
+.years .bar { border-radius: 3px 3px 0 0; }
+.years-axis { display: grid; gap: 4px; font-family: var(--mono); font-size: .68rem; color: var(--muted); text-align: center; }
+.eras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
+.era { display: grid; gap: 4px; border-top: 3px solid; padding-top: 10px; align-content: start; min-width: 0; }
+.era .when { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+.era h3 { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; overflow-wrap: anywhere; }
+.era p { margin: 0; font-size: .9rem; color: var(--muted); }
+
+/* Life stages */
+.born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.born label { font-family: var(--mono); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.born select, .born input { font: 500 1rem var(--body); color: var(--ink); background: var(--stage); border: 1px solid var(--rule); border-radius: 4px; padding: 9px 10px; }
+.born input { width: 6.5em; }
+.born select:focus-visible, .born input:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
+.stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.stage { background: var(--stage); border-top: 4px solid; border-radius: 0 0 4px 4px; padding: 18px 20px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.stage h3 { font-size: 1.7rem; font-weight: 900; text-transform: uppercase; }
+.stage .when { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+.stage p { margin: 0; font-size: .92rem; overflow-wrap: anywhere; }
+.stage p b { font-weight: 600; }
+.stage .genre { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+
+/* Clock */
+.hours { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; align-items: end; height: 160px; }
+.hours i { display: block; background: var(--bar); border-radius: 2px 2px 0 0; }
+.hours i.night { background: var(--g-chill); }
+.hours i.peak { background: var(--sunset); }
+.hours-axis { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; font-family: var(--mono); font-size: .66rem; color: var(--muted); text-align: center; }
+.hours-axis span:nth-child(odd) { visibility: hidden; }
+
+/* Receipts */
+.receipts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.receipt { background: var(--stage); padding: 20px; border-radius: 4px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.receipt .big { font-family: var(--display); font-weight: 900; font-size: 2.6rem; line-height: 1; color: var(--sunset); }
+.receipt p { margin: 0; font-size: .95rem; overflow-wrap: anywhere; }
+.receipt small { color: var(--muted); font-family: var(--mono); font-size: .75rem; }
+
+footer { color: var(--muted); font-size: .82rem; border-top: 1px solid var(--rule); padding-top: 16px; display: grid; gap: 16px; }
+@media (max-width: 560px) {
+  .years-axis span:nth-child(odd) { visibility: hidden; }
+  .hours-axis span:not(:nth-child(6n+1)) { visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

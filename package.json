@@ -1,0 +1,10 @@
+{
+  "name": "spotify-persona",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Drop in your Spotify data export and see what your listening history says about you. Runs entirely in the browser.",
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "license": "MIT"
+}
