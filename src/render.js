@@ -317,6 +317,125 @@
     update();
   }
 
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const prettyDate = isoDate => {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    return `${d} ${MONTHS[m - 1].slice(0, 3)} ${y}`;
+  };
+  const songLine = t => [el("b", { text: `"${t.track}"` }), el("small", { text: `${t.artist} · ${fmt(t.plays)} ${t.plays === 1 ? "play" : "plays"}` })];
+
+  function greeting(profile) {
+    $("greeting").textContent = profile.name ? `Hey ${profile.name}, this is your Spotify personality` : "Your Spotify personality";
+  }
+
+  // Remembered across re-renders, so adding a chapter does not reset a date the user picked.
+  let otdDate = null;
+
+  function onThisDay(timeline, birth) {
+    const input = $("otdDate");
+    if (!otdDate) {
+      const now = new Date();
+      otdDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    }
+    input.value = otdDate;
+    const update = () => {
+      if (!input.value) return;
+      otdDate = input.value;
+      const [, m, d] = otdDate.split("-").map(Number);
+      $("otdTitle").textContent = `${d} ${MONTHS[m - 1]} through the years`;
+      const days = SpotifyPersona.moments.onThisDay(timeline, m, d);
+      if (days.length === 0) {
+        fill("otdList", [el("li", { class: "empty-note", text: "Nothing played on this date in any year. Try another one." })]);
+        return;
+      }
+      fill("otdList", days.map(day => {
+        const age = birth ? day.year - birth.year - (m < birth.month || (m === birth.month && d < (birth.day || 1)) ? 1 : 0) : null;
+        const when = [String(day.year)];
+        if (age !== null && age >= 0) when.push(`age ${age}`);
+        when.push(duration(day.minutes / 60));
+        return el("li", {}, [el("span", { class: "when num", text: when.join(" · ") }), ...day.topTracks.flatMap(songLine)]);
+      }));
+    };
+    input.onchange = update;
+    update();
+  }
+
+  function birthdays(timeline, birth) {
+    $("birthdayBlock").hidden = !(birth && birth.day);
+    if (!birth || !birth.day) return;
+    const days = SpotifyPersona.moments.onThisDay(timeline, birth.month, birth.day, 1);
+    fill("birthdays", days.length ? days.map(day => el("li", {}, [
+      el("span", { class: "when num", text: `Turning ${day.year - birth.year} · ${day.year} · ${duration(day.minutes / 60)}` }),
+      ...songLine(day.topTracks[0])
+    ])) : [el("li", { class: "empty-note", text: "No music on your birthdays yet. Time to fix that." })]);
+  }
+
+  /** Bump chart of yearly ranks: rank 1 at the top, lines broken where an artist dropped out of the top 15. */
+  function bumpChart(ranks) {
+    const MAX_RANK = 15, COL = 56, ROW = 22, LEFT = 34, TOP = 18;
+    const width = LEFT + Math.max(ranks.years.length - 1, 1) * COL + 24;
+    const height = TOP + (MAX_RANK - 1) * ROW + 34;
+    const x = i => LEFT + i * COL;
+    const y = r => TOP + (r - 1) * ROW;
+    const grid = [1, 5, 10, 15].flatMap(r => [
+      svg("line", { x1: LEFT - 6, x2: width - 12, y1: y(r), y2: y(r), class: "gridline" }),
+      svg("text", { x: LEFT - 12, y: y(r), class: "axis", "text-anchor": "end", "dominant-baseline": "middle" }, `#${r}`)
+    ]);
+    const years = ranks.years.map((yr, i) => svg("text", { x: x(i), y: height - 8, class: "axis", "text-anchor": "middle" }, `'${String(yr).slice(2)}`));
+    const series = ranks.artists.map((a, n) => {
+      const color = `var(--l${n + 1})`;
+      const segments = [];
+      let current = [];
+      a.ranks.forEach((r, i) => {
+        if (r !== null && r <= MAX_RANK) current.push(`${x(i)},${y(r)}`);
+        else if (current.length) { segments.push(current); current = []; }
+      });
+      if (current.length) segments.push(current);
+      const lines = segments.filter(s => s.length > 1).map(s => svg("polyline", { points: s.join(" "), class: "line", "data-artist": String(n), style: `stroke:${color}` }));
+      const dots = a.ranks.map((r, i) => (r !== null && r <= MAX_RANK)
+        ? svg("circle", { cx: x(i), cy: y(r), r: 4.5, class: "dot", "data-artist": String(n), style: `fill:${color}` }, svg("title", {}, `${a.name}: #${r} in ${ranks.years[i]}`))
+        : "");
+      return [...lines, ...dots];
+    });
+    return svg("svg", { class: "bump", viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Yearly artist ranks" }, [...grid, ...years, ...series.flat()]);
+  }
+
+  function discovery(stats, timeline) {
+    const api = SpotifyPersona.moments;
+    const ranks = api.artistRanks(timeline, 10);
+    const chart = bumpChart(ranks);
+    fill("bump", [chart]);
+    let focused = null;
+    const focus = n => {
+      focused = focused === n ? null : n;
+      chart.classList.toggle("focus", focused !== null);
+      chart.querySelectorAll("[data-artist]").forEach(e => e.classList.toggle("on", Number(e.dataset.artist) === focused));
+      for (const b of $("bumpLegend").children) b.setAttribute("aria-pressed", String(Number(b.dataset.artist) === focused));
+    };
+    fill("bumpLegend", ranks.artists.map((a, n) => {
+      const b = el("button", { type: "button", "data-artist": String(n), "aria-pressed": "false", style: `--sw:var(--l${n + 1})`, text: a.name });
+      b.addEventListener("click", () => focus(n));
+      b.addEventListener("mouseenter", () => { if (focused === null) { chart.classList.add("focus"); chart.querySelectorAll(`[data-artist="${n}"]`).forEach(e => e.classList.add("on")); } });
+      b.addEventListener("mouseleave", () => { if (focused === null) { chart.classList.remove("focus"); chart.querySelectorAll(".on").forEach(e => e.classList.remove("on")); } });
+      return b;
+    }));
+
+    const found = api.discoveries(timeline, stats.topArtists.slice(0, 12).map(a => a.name));
+    fill("discoveries", found.map(d => {
+      let clicked = "Never quite clicked.";
+      if (d.monthsToClick === 0) clicked = "Clicked straight away.";
+      else if (d.monthsToClick !== null) {
+        const [cy, cm] = d.clicked.split("-").map(Number);
+        clicked = `Clicked in ${MONTHS[cm - 1]} ${cy}, ${d.monthsToClick} ${d.monthsToClick === 1 ? "month" : "months"} later.`;
+      }
+      return el("li", {}, [
+        el("span", { class: "when num", text: prettyDate(d.first) }),
+        el("b", { text: d.name }),
+        el("small", { text: `First song: "${d.firstTrack}". ${clicked}` })
+      ]);
+    }));
+  }
+
   function clock(stats) {
     const max = Math.max(...stats.hours);
     const peak = stats.hours.indexOf(max);
@@ -335,7 +454,8 @@
     ])));
   }
 
-  function render(stats, persona, timeline, handlers = {}) {
+  function render({ stats, persona, timeline, profile, onRemoveChapter = () => {} }) {
+    greeting(profile);
     hero(stats, persona);
     traits(persona);
     lineup(stats);
@@ -344,9 +464,12 @@
     vibes(persona);
     skips(stats);
     tour(stats, persona);
+    discovery(stats, timeline);
     explore(stats, persona, timeline);
+    onThisDay(timeline, profile.birth);
     life(persona);
-    chapters(persona, handlers.onRemoveChapter || (() => {}));
+    birthdays(timeline, profile.birth);
+    chapters(persona, onRemoveChapter);
     clock(stats);
     receipts(persona);
     $("foot").textContent = `Built from your Spotify streaming history, ${stats.first} to ${stats.last}. Hours are total time played, including skips. A play counts streams of 30 seconds or more. Times are in your browser's time zone. Nothing left this browser.`;

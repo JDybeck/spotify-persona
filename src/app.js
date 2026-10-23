@@ -14,9 +14,9 @@
   function loadProfile() {
     try {
       const saved = JSON.parse(localStorage.getItem(PROFILE_KEY));
-      if (saved) return { birth: saved.birth || null, chapters: Array.isArray(saved.chapters) ? saved.chapters : [] };
+      if (saved) return { name: saved.name || "", birth: saved.birth || null, chapters: Array.isArray(saved.chapters) ? saved.chapters : [] };
     } catch { /* fall through */ }
-    return { birth: null, chapters: [] };
+    return { name: "", birth: null, chapters: [] };
   }
 
   function saveProfile() {
@@ -32,9 +32,13 @@
     if (profile.birth) {
       $("bornYear").value = profile.birth.year;
       $("bornMonth").value = profile.birth.month;
+      $("bornDay").value = profile.birth.day || "";
     }
-    const persona = SpotifyPersona.persona.buildPersona(stats, profile);
-    SpotifyPersona.render(stats, persona, timeline, {
+    SpotifyPersona.render({
+      stats,
+      timeline,
+      profile,
+      persona: SpotifyPersona.persona.buildPersona(stats, profile),
       onRemoveChapter: index => {
         profile.chapters.splice(index, 1);
         saveProfile();
@@ -76,6 +80,13 @@
     $("status").classList.toggle("error", isError);
   }
 
+  $("userName").value = profile.name;
+  $("userName").addEventListener("change", () => {
+    profile.name = $("userName").value.trim().slice(0, 40);
+    saveProfile();
+    if (stats) show();
+  });
+
   input.addEventListener("change", () => analyzeFile(input.files[0]));
   drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
   drop.addEventListener("dragleave", () => drop.classList.remove("over"));
@@ -92,7 +103,14 @@
       $("lifeNote").textContent = `Enter a birth year between ${MIN_YEAR} and ${new Date().getFullYear()}.`;
       return;
     }
-    profile.birth = { year, month: Number($("bornMonth").value) };
+    const month = Number($("bornMonth").value);
+    const day = $("bornDay").value ? Number($("bornDay").value) : null;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day !== null && (!Number.isInteger(day) || day < 1 || day > daysInMonth)) {
+      $("lifeNote").textContent = `Enter a day between 1 and ${daysInMonth}, or leave it empty.`;
+      return;
+    }
+    profile.birth = day ? { year, month, day } : { year, month };
     saveProfile();
     show();
     $("life").scrollIntoView({ block: "start" });

@@ -173,6 +173,31 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .clock .wedge.night { fill: var(--g-chill); }
 .clock .clock-label { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
 
+/* Moments: on this day, birthdays, discoveries */
+:root { --l1: #ff7a45; --l2: #4fc3f7; --l3: #ffc145; --l4: #c58cff; --l5: #7ed6a5; --l6: #ff8fc8; --l7: #e8586a; --l8: #8fa3ff; --l9: #d9b38c; --l10: #9ccf6b; }
+.born input[type="date"] { width: auto; }
+#bornDay { width: 4.5em; }
+#userName { width: auto; flex: 1 1 12em; max-width: 20em; }
+.moments { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.moments li { background: var(--stage); border-radius: 4px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.moments .when { font-family: var(--mono); font-size: .78rem; color: var(--sunset); letter-spacing: .06em; text-transform: uppercase; }
+.moments b { font-weight: 600; overflow-wrap: anywhere; }
+.moments small { color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+.moments .empty-note { grid-column: 1 / -1; background: none; padding: 0; color: var(--muted); }
+.bump-wrap { overflow-x: auto; }
+.bump-wrap svg { display: block; width: 100%; min-width: 600px; height: auto; }
+.bump .gridline { stroke: var(--rule); stroke-width: 1; }
+.bump .axis { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+.bump .line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; transition: opacity .15s; }
+.bump .dot { stroke: var(--night); stroke-width: 2; transition: opacity .15s; }
+.bump.focus .line, .bump.focus .dot { opacity: .12; }
+.bump.focus .on { opacity: 1; }
+.bump-legend { display: flex; flex-wrap: wrap; gap: 8px; }
+.bump-legend button { font: 500 .85rem var(--body); color: var(--ink); background: var(--stage); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.bump-legend button::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--sw); }
+.bump-legend button[aria-pressed="true"] { border-color: var(--sw); }
+.bump-legend button:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
+
 /* Life stages */
 .born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .born label { font-family: var(--mono); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

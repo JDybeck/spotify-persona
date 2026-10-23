@@ -19,6 +19,10 @@
   </section>
 
   <section>
+    <div class="born">
+      <label for="userName">Your name</label>
+      <input id="userName" type="text" maxlength="40" autocomplete="given-name" placeholder="Optional, for a greeting" aria-label="Your first name (optional)">
+    </div>
     <label class="drop" id="drop" for="file">
       <strong>Drop your zip here</strong>
       <span>or click to pick my_spotify_data.zip</span>
@@ -43,7 +47,7 @@
 
 <main class="wrap" id="result" hidden>
   <section class="hero">
-    <div class="eyebrow">Your Spotify personality</div>
+    <div class="eyebrow" id="greeting">Your Spotify personality</div>
     <h1 id="title"></h1>
     <div class="tour" id="tour"></div>
     <p id="description"></p>
@@ -111,6 +115,17 @@
     <div class="eras" id="eras"></div>
   </section>
 
+  <section id="discovery">
+    <div class="eyebrow">Rise and fall</div>
+    <h2>Who ruled each year</h2>
+    <p class="lede">Yearly rank of every artist that made a yearly top 3. Hover or tap a name to follow one line.</p>
+    <div class="bump-wrap"><div id="bump"></div></div>
+    <div class="bump-legend" id="bumpLegend"></div>
+    <h3 class="subhead">How you found them</h3>
+    <p class="lede">When you first heard your biggest artists, and the month they clicked: the first month with 10 or more plays.</p>
+    <ol class="moments" id="discoveries"></ol>
+  </section>
+
   <section id="explore">
     <div class="eyebrow">Explore</div>
     <h2>Dig into any period</h2>
@@ -122,11 +137,22 @@
     <div class="year-detail" id="exploreDetail" role="tabpanel"></div>
   </section>
 
+  <section id="onThisDay">
+    <div class="eyebrow">On this day</div>
+    <h2 id="otdTitle">On this day</h2>
+    <div class="born">
+      <label for="otdDate">Date</label>
+      <input id="otdDate" type="date">
+    </div>
+    <ol class="moments" id="otdList"></ol>
+  </section>
+
   <section id="life">
     <div class="eyebrow">Soundtrack of your life</div>
     <h2>The times of your life</h2>
     <form class="born" id="bornForm">
-      <label for="bornMonth">Born</label>
+      <label for="bornDay">Born</label>
+      <input id="bornDay" type="number" inputmode="numeric" min="1" max="31" placeholder="Day" aria-label="Birth day (optional, for birthday songs)">
       <select id="bornMonth" aria-label="Birth month">
         <option value="1">January</option><option value="2">February</option><option value="3">March</option>
         <option value="4">April</option><option value="5">May</option><option value="6">June</option>
@@ -138,6 +164,11 @@
     </form>
     <p class="lede" id="lifeNote"></p>
     <div class="stages" id="stages"></div>
+
+    <div id="birthdayBlock" hidden>
+      <h3 class="subhead">Your birthday soundtrack</h3>
+      <ol class="moments" id="birthdays"></ol>
+    </div>
 
     <h3 class="subhead">Your chapters</h3>
     <p class="lede">Add the big chapters of your life, like where you grew up, when you studied or the years you lived abroad, and see what you were listening to. Add as many as you like.</p>
@@ -183,6 +214,7 @@
 <script src="src/genres.js"></script>
 <script src="src/analyze.js"></script>
 <script src="src/explore.js"></script>
+<script src="src/moments.js"></script>
 <script src="src/vibes.js"></script>
 <script src="src/persona.js"></script>
 <script src="src/render.js"></script>
