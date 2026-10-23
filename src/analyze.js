@@ -63,13 +63,33 @@
   /** Local calendar day as a whole number, so ranges can be compared without time zones getting in the way. */
   const dayNumber = (year, monthIndex, day) => Math.round(Date.UTC(year, monthIndex, day) / 86400000);
 
+  // Day numbers repeat across timeline rows, so their calendar parts are cached per timeline.
+  const calendarCache = new WeakMap();
+
+  /** Returns a function from a timeline slot (day * 24 + hour) to { day, year, month (1-12), date, iso }. */
+  function calendarOf(timeline) {
+    let cache = calendarCache.get(timeline);
+    if (!cache) calendarCache.set(timeline, cache = new Map());
+    return slot => {
+      const day = Math.floor(slot / 24);
+      let c = cache.get(day);
+      if (!c) {
+        const d = new Date(day * 86400000);
+        const year = d.getUTCFullYear(), month = d.getUTCMonth() + 1, date = d.getUTCDate();
+        c = { day, year, month, date, iso: `${year}-${String(month).padStart(2, "0")}-${String(date).padStart(2, "0")}` };
+        cache.set(day, c);
+      }
+      return c;
+    };
+  }
+
   /**
    * Compact table of listening per (local day, hour, track), so any date range can be queried later.
    * Rows end up in typed arrays that can be transferred from the worker without copying.
    */
   function createTimelineBuilder() {
     const trackIds = new Map(), artistIds = new Map(), albumIds = new Map();
-    const trackNames = [], trackArtist = [], trackAlbum = [], artistNames = [];
+    const trackNames = [], trackArtist = [], trackAlbum = [], artistNames = [], albumNames = [], albumArtist = [];
     const rowIndex = new Map();
     const slot = [], track = [], streams = [], plays = [], ms = [];
 
@@ -91,8 +111,20 @@
         id = trackIds.size;
         trackIds.set(key, id);
         trackNames.push(r.track);
-        trackArtist.push(intern(artistIds, r.artist, artistNames));
-        trackAlbum.push(r.album ? intern(albumIds, `${r.album}\u0000${r.artist}`) : -1);
+        const artistId = intern(artistIds, r.artist, artistNames);
+        trackArtist.push(artistId);
+        let albumId = -1;
+        if (r.album) {
+          const albumKey = `${r.album}\u0000${r.artist}`;
+          albumId = albumIds.get(albumKey);
+          if (albumId === undefined) {
+            albumId = albumIds.size;
+            albumIds.set(albumKey, albumId);
+            albumNames.push(r.album);
+            albumArtist.push(artistId);
+          }
+        }
+        trackAlbum.push(albumId);
       }
       const s = dayNumber(d.getFullYear(), d.getMonth(), d.getDate()) * 24 + d.getHours();
       let rows = rowIndex.get(s);
@@ -112,6 +144,8 @@
       return {
         trackNames,
         artistNames,
+        albumNames,
+        albumArtist: Uint32Array.from(albumArtist),
         trackArtist: Uint32Array.from(trackArtist),
         trackAlbum: Int32Array.from(trackAlbum),
         slot: Int32Array.from(slot),
@@ -293,5 +327,5 @@
     return { addRecord, finish, timeline: timeline.build };
   }
 
-  return { createAggregator, normalize, isHistoryFile, dayNumber, MIN_PLAY_MS, MIN_ARTIST_STARTS_FOR_SKIPS, MIN_PROFILE_PLAYS };
+  return { createAggregator, normalize, isHistoryFile, dayNumber, calendarOf, MIN_PLAY_MS, MIN_ARTIST_STARTS_FOR_SKIPS, MIN_PROFILE_PLAYS };
 });

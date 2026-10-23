@@ -4,6 +4,8 @@ Drop in your Spotify data export and get a gig-poster breakdown of what your lis
 
 The **Explore** view digs into any period: the last 4 weeks, 6 or 12 months, any specific year or all time, optionally filtered to one genre. It shows streams, minutes, distinct tracks, artists and albums, top artists and songs, the genre mix and listening clocks by hour of day.
 
+**Search** finds any artist, song or album you have played and shows its plays, hours, all-time rank, first and latest play, biggest day, plays per year and top songs or albums.
+
 Add your birth month and year to see the soundtrack of each life stage (teenage years, early twenties and so on). Add your own chapters, like where you grew up, where you studied or the years you lived abroad, to see what you listened to then and which countries you streamed from. These details are only saved in your browser.
 
 **Everything runs in your browser.** The zip is read locally by a Web Worker, nothing is uploaded, and there is no backend.
@@ -42,6 +44,8 @@ Any static file server works, for example `python -m http.server`.
 | --- | --- |
 | `src/analyze.js` | Normalizes both export formats and aggregates stats in one pass, file by file |
 | `src/genres.js` | Genre definitions and the artist-to-genre dictionary |
+| `src/search.js` | Accent-insensitive search over artists, songs and albums, plus their detail views |
+| `src/moments.js` | On this day, birthday songs, discoveries and yearly artist ranks |
 | `src/explore.js` | Queries the per-hour timeline for any date range and genre |
 | `src/vibes.js` | Song vibes (comfort, after dark, on repeat, phase, skip bait) from listening patterns, and energy from genre |
 | `src/persona.js` | Archetype, traits, genre mix, eras and receipts derived from the stats |

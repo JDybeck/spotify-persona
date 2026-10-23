@@ -26,7 +26,7 @@ self.onmessage = async ({ data: file }) => {
     const stats = aggregator.finish();
     if (!stats) throw new Error("The history files contain no music streams.");
     const timeline = aggregator.timeline();
-    const buffers = ["trackArtist", "trackAlbum", "slot", "track", "streams", "plays", "ms"].map(k => timeline[k].buffer);
+    const buffers = ["trackArtist", "trackAlbum", "albumArtist", "slot", "track", "streams", "plays", "ms"].map(k => timeline[k].buffer);
     self.postMessage({ type: "done", stats, timeline }, buffers);
   } catch (err) {
     self.postMessage({ type: "error", message: err.message || String(err) });

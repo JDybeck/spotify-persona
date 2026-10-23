@@ -137,6 +137,17 @@
     <div class="year-detail" id="exploreDetail" role="tabpanel"></div>
   </section>
 
+  <section id="searchSection">
+    <div class="eyebrow">Search</div>
+    <h2>Look anything up</h2>
+    <div class="born">
+      <label for="searchInput">Search</label>
+      <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="An artist, song or album">
+    </div>
+    <div class="search-results" id="searchResults" aria-live="polite"></div>
+    <div class="year-detail" id="searchDetail" hidden></div>
+  </section>
+
   <section id="onThisDay">
     <div class="eyebrow">On this day</div>
     <h2 id="otdTitle">On this day</h2>
@@ -215,6 +226,7 @@
 <script src="src/analyze.js"></script>
 <script src="src/explore.js"></script>
 <script src="src/moments.js"></script>
+<script src="src/search.js"></script>
 <script src="src/vibes.js"></script>
 <script src="src/persona.js"></script>
 <script src="src/render.js"></script>

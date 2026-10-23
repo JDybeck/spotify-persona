@@ -45,11 +45,15 @@
     ])));
   }
 
-  function lineup(stats) {
+  function lineup(stats, timeline) {
     const tiers = [[0, 3, "t1"], [3, 15, "t2"], [15, 45, "t3"]];
+    const artistButton = x => {
+      const b = el("button", { type: "button", text: x.name, title: `${fmt(x.hours)} h · look up` });
+      b.addEventListener("click", () => openDetail(timeline, "artist", timeline.artistNames.indexOf(x.name), true));
+      return b;
+    };
     fill("poster", [
-      ...tiers.map(([a, b, cls]) => el("div", { class: `tier ${cls}` },
-        stats.topArtists.slice(a, b).map(x => el("span", { text: x.name, title: `${fmt(x.hours)} h` })))),
+      ...tiers.map(([a, b, cls]) => el("div", { class: `tier ${cls}` }, stats.topArtists.slice(a, b).map(artistButton))),
       el("div", { class: "dates", text: `Live in your headphones · ${stats.first} to ${stats.last}` })
     ]);
   }
@@ -436,6 +440,87 @@
     }));
   }
 
+  const KIND_LABEL = { artist: "Artist", track: "Song", album: "Album" };
+
+  function pickButton(main, sub, onClick) {
+    const b = el("button", { type: "button", class: "pick" }, [el("b", { text: main }), sub ? el("small", { text: sub }) : ""]);
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function openDetail(timeline, kind, id, scroll = false) {
+    const d = id >= 0 ? SpotifyPersona.search.detail(timeline, kind, id) : null;
+    const panel = $("searchDetail");
+    panel.hidden = !d;
+    if (!d) return;
+    const plural = n => `${fmt(n)} ${n === 1 ? "play" : "plays"}`;
+    const kindWord = { artist: "artists", track: "songs", album: "albums" }[kind];
+    const tiles = [
+      [fmt(d.plays), "plays"],
+      [duration(d.hours), "listened"],
+      [`#${fmt(d.rank)}`, `of your ${kindWord}`],
+      [prettyDate(d.first), "first play"],
+      [prettyDate(d.last), "latest play"],
+      [plural(d.peakDay.plays), `on ${prettyDate(d.peakDay.date)}, the biggest day`]
+    ];
+    const max = Math.max(...d.perYear.map(y => y.plays), 1);
+    const columns = `repeat(${d.perYear.length}, minmax(0, 1fr))`;
+    const lists = [];
+    if (d.topTracks.length) {
+      lists.push(el("div", {}, [el("h3", { text: kind === "album" ? "Songs you played" : "Top songs" }),
+        el("ol", { class: "ranked" }, d.topTracks.map(t => el("li", {}, [
+          pickButton(t.track, null, () => openDetail(timeline, "track", t.id)),
+          el("span", { class: "stat num", text: plural(t.plays) })
+        ])))]));
+    }
+    if (d.topAlbums.length) {
+      lists.push(el("div", {}, [el("h3", { text: "Top albums" }),
+        el("ol", { class: "ranked" }, d.topAlbums.map(a => el("li", {}, [
+          pickButton(a.album, null, () => openDetail(timeline, "album", a.id)),
+          el("span", { class: "stat num", text: plural(a.plays) })
+        ])))]));
+    }
+
+    const header = [el("span", { class: "detail-kind", text: d.by ? `${KIND_LABEL[kind]} by ${d.by}` : KIND_LABEL[kind] }), el("span", { class: "detail-name", text: d.name })];
+    if (d.by) {
+      const byId = timeline.artistNames.indexOf(d.by);
+      header.push(pickButton(`More from ${d.by}`, null, () => openDetail(timeline, "artist", byId)));
+    }
+    fill("searchDetail", [
+      el("div", { class: "detail-head" }, header),
+      el("div", { class: "tiles" }, tiles.map(([value, text]) => el("div", { class: "tile" }, [el("b", { class: "num", text: value }), el("span", { text })]))),
+      el("div", {}, [
+        el("h3", { class: "clocks-title", text: "Plays per year" }),
+        el("div", { class: "detail-years", style: `grid-template-columns:${columns}`, role: "img", "aria-label": "Plays per year" },
+          d.perYear.map(y => el("i", { style: `height:${y.plays / max * 100}%`, title: `${y.year}: ${plural(y.plays)}` }))),
+        el("div", { class: "detail-years-axis", style: `grid-template-columns:${columns}` },
+          d.perYear.map((y, i) => el("span", { text: d.perYear.length > 10 && i % 2 ? "" : `'${String(y.year).slice(2)}` })))
+      ]),
+      lists.length ? el("div", { class: "year-cols" }, lists) : ""
+    ]);
+    if (scroll) $("searchSection").scrollIntoView({ block: "start", behavior: "smooth" });
+    else panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  function searchSection(timeline) {
+    const input = $("searchInput");
+    let timer = null;
+    const run = () => {
+      const r = SpotifyPersona.search.search(timeline, input.value);
+      const groups = [["Artists", r.artists], ["Songs", r.tracks], ["Albums", r.albums]].filter(([, items]) => items.length);
+      if (input.value.trim().length >= SpotifyPersona.search.MIN_QUERY && groups.length === 0) {
+        fill("searchResults", [el("p", { class: "search-empty", text: `Nothing you've played matches "${input.value.trim()}".` })]);
+        return;
+      }
+      fill("searchResults", groups.map(([title, items]) => el("div", {}, [
+        el("h3", { text: title }),
+        el("ol", {}, items.map(x => el("li", {}, pickButton(x.name, `${x.by ? `${x.by} · ` : ""}${fmt(x.plays)} ${x.plays === 1 ? "play" : "plays"}`, () => openDetail(timeline, x.kind, x.id)))))
+      ])));
+    };
+    input.oninput = () => { clearTimeout(timer); timer = setTimeout(run, 120); };
+    run();
+  }
+
   function clock(stats) {
     const max = Math.max(...stats.hours);
     const peak = stats.hours.indexOf(max);
@@ -458,7 +543,7 @@
     greeting(profile);
     hero(stats, persona);
     traits(persona);
-    lineup(stats);
+    lineup(stats, timeline);
     genres(persona);
     setlist(stats, persona);
     vibes(persona);
@@ -466,6 +551,7 @@
     tour(stats, persona);
     discovery(stats, timeline);
     explore(stats, persona, timeline);
+    searchSection(timeline);
     onThisDay(timeline, profile.birth);
     life(persona);
     birthdays(timeline, profile.birth);

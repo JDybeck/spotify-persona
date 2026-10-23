@@ -67,7 +67,7 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .poster .tier { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px .7em; font-family: var(--display); text-transform: uppercase; line-height: 1.05; }
 .tier.t1 { font-size: clamp(2.2rem, 8vw, 4.4rem); font-weight: 900; flex-direction: column; align-items: center; }
 .tier.t2 { font-size: clamp(1.4rem, 4.2vw, 2.3rem); font-weight: 800; }
-.tier.t2 span:nth-child(even) { color: var(--sunset); }
+.tier.t2 > :nth-child(even) { color: var(--sunset); }
 .tier.t3 { font-size: clamp(1rem, 2.6vw, 1.35rem); font-weight: 600; color: var(--muted); }
 .poster .dates { font-family: var(--mono); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 
@@ -197,6 +197,31 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .bump-legend button::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--sw); }
 .bump-legend button[aria-pressed="true"] { border-color: var(--sw); }
 .bump-legend button:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
+
+/* Search */
+#searchInput { flex: 1 1 16em; min-width: 0; width: auto; max-width: 32em; }
+.search-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px 28px; }
+.search-results:empty { display: none; }
+.search-results h3 { font-size: 1.1rem; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; }
+.search-results ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pick { width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0; border-radius: 4px; padding: 6px 8px; cursor: pointer; display: grid; gap: 1px; }
+.pick:hover, .pick:focus-visible { background: var(--stage); outline: none; }
+.pick:focus-visible { box-shadow: 0 0 0 2px var(--sunset); }
+.pick b { font-weight: 600; overflow-wrap: anywhere; }
+.pick small { color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
+.search-empty { color: var(--muted); margin: 0; }
+.detail-head { display: grid; gap: 6px; justify-items: start; }
+.detail-head .pick { width: auto; color: var(--sunset); padding: 4px 0; }
+.detail-kind { font-family: var(--mono); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--sunset); }
+.detail-name { font-family: var(--display); font-weight: 900; font-size: clamp(2.2rem, 7vw, 4rem); line-height: .95; text-transform: uppercase; overflow-wrap: anywhere; }
+.detail-years { display: grid; gap: 3px; align-items: end; height: 120px; }
+.detail-years i { display: block; background: var(--sunset); border-radius: 2px 2px 0 0; min-height: 1px; }
+.detail-years-axis { display: grid; gap: 3px; font-family: var(--mono); font-size: .66rem; color: var(--muted); text-align: center; }
+.ranked .pick { padding: 0; }
+.ranked .pick:hover { background: none; text-decoration: underline; }
+.poster .tier button { font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.poster .tier button:hover { text-decoration: underline; text-decoration-thickness: 2px; }
+.poster .tier button:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
 
 /* Life stages */
 .born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

@@ -1,38 +1,20 @@
 // Moments from the per-hour timeline: on this day, artist discoveries and yearly artist ranks.
 // Pure logic with no DOM access, shared by the page and the Node tests.
 (function (root, factory) {
-  const api = factory();
-  if (typeof module === "object" && module.exports) module.exports = api;
-  else (root.SpotifyPersona = root.SpotifyPersona || {}).moments = api;
-})(typeof self !== "undefined" ? self : this, function () {
+  const isNode = typeof module === "object" && module.exports;
+  const api = factory(isNode ? require("./analyze.js") : root.SpotifyPersona.analyze);
+  if (isNode) module.exports = api;
+  else root.SpotifyPersona.moments = api;
+})(typeof self !== "undefined" ? self : this, function ({ calendarOf }) {
   const MINUTE_MS = 60000;
   const CLICK_PLAYS = 10;
-
-  // Day numbers repeat across rows, so their calendar parts are cached per timeline.
-  const calendarCache = new WeakMap();
-  function calendarOf(timeline) {
-    let cache = calendarCache.get(timeline);
-    if (!cache) calendarCache.set(timeline, cache = new Map());
-    return day => {
-      let c = cache.get(day);
-      if (!c) {
-        const d = new Date(day * 86400000);
-        c = { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, date: d.getUTCDate() };
-        cache.set(day, c);
-      }
-      return c;
-    };
-  }
-
-  const dayOf = slot => Math.floor(slot / 24);
-  const iso = c => `${c.year}-${String(c.month).padStart(2, "0")}-${String(c.date).padStart(2, "0")}`;
 
   /** What was played on a calendar date (month 1-12, date 1-31) in every year, newest year first. */
   function onThisDay(timeline, month, date, topN = 3) {
     const calendar = calendarOf(timeline);
     const years = new Map();
     for (let i = 0; i < timeline.slot.length; i++) {
-      const c = calendar(dayOf(timeline.slot[i]));
+      const c = calendar(timeline.slot[i]);
       if (c.month !== month || c.date !== date) continue;
       let y = years.get(c.year);
       if (!y) years.set(c.year, y = { ms: 0, plays: 0, tracks: new Map() });
@@ -73,7 +55,7 @@
       if (!wantedIds.has(a)) continue;
       const s = timeline.slot[i];
       if (!firstSlot.has(a) || s < firstSlot.get(a)) { firstSlot.set(a, s); firstTrack.set(a, t); }
-      const c = calendar(dayOf(s));
+      const c = calendar(s);
       const month = c.year * 12 + c.month - 1;
       let months = monthPlays.get(a);
       if (!months) monthPlays.set(a, months = new Map());
@@ -82,14 +64,14 @@
     return names.map(name => {
       const a = idByName.get(name);
       if (a === undefined || !firstSlot.has(a)) return null;
-      const first = calendar(dayOf(firstSlot.get(a)));
+      const first = calendar(firstSlot.get(a));
       const firstMonth = first.year * 12 + first.month - 1;
       const clickMonth = [...monthPlays.get(a).entries()]
         .filter(([, n]) => n >= CLICK_PLAYS)
         .reduce((min, [m]) => (min === null || m < min ? m : min), null);
       return {
         name,
-        first: iso(first),
+        first: first.iso,
         firstTrack: timeline.trackNames[firstTrack.get(a)],
         clicked: clickMonth === null ? null : `${Math.floor(clickMonth / 12)}-${String(clickMonth % 12 + 1).padStart(2, "0")}`,
         monthsToClick: clickMonth === null ? null : clickMonth - firstMonth
@@ -105,7 +87,7 @@
     const calendar = calendarOf(timeline);
     const byYear = new Map();
     for (let i = 0; i < timeline.slot.length; i++) {
-      const year = calendar(dayOf(timeline.slot[i])).year;
+      const year = calendar(timeline.slot[i]).year;
       let artists = byYear.get(year);
       if (!artists) byYear.set(year, artists = new Map());
       const a = timeline.trackArtist[timeline.track[i]];
