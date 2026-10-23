@@ -65,10 +65,37 @@
     $("dnaNote").textContent = `Based on the ${fmt(taggedHours)} hours (${pct(coverage)} of your listening) by artists in the built-in genre list. Spotify's export has no genre data, so artists outside the list are left out.`;
   }
 
-  function setlist(stats) {
+  const energyVar = key => (key ? `var(--e-${key})` : "var(--g-other)");
+
+  function setlist(stats, persona) {
+    const tags = persona.vibes.tags;
     fill("setlist", stats.topTracks.slice(0, 15).map(t => el("li", {}, [
-      el("div", { class: "song" }, [el("b", { text: t.track }), el("span", { text: t.artist })]),
+      el("div", { class: "song" }, [
+        el("b", { text: t.track }),
+        el("span", { text: t.artist }),
+        el("div", {}, (tags[`${t.track}\u0000${t.artist}`] || []).map(tag => el("span", { class: "tagchip", text: tag })))
+      ]),
       el("span", { class: "plays num", text: `${fmt(t.plays)} plays` })
+    ])));
+  }
+
+  function vibes(persona) {
+    const { energy, vibes: list } = persona.vibes;
+    $("vibesSection").hidden = list.length === 0 && energy.length === 0;
+    fill("energyBar", energy.map(e => el("i", { style: `width:${e.share * 100}%;background:${energyVar(e.key)}`, title: `${e.label} ${pct(e.share)}` })));
+    $("energyBar").hidden = energy.length === 0;
+    $("energyNote").replaceChildren(
+      el("span", { class: "energy-legend" }, energy.map(e => el("span", { style: `--sw:${energyVar(e.key)}`, text: `${e.label} ${pct(e.share)}` }))),
+      energy.length ? " " : "",
+      "Energy comes from each artist's genre, weighted by how often you played their songs. The vibes below come from when and how you played them."
+    );
+    fill("vibes", list.map(v => el("div", { class: "vibe" }, [
+      el("h3", { text: v.name }),
+      el("p", { text: v.blurb }),
+      el("ol", {}, v.songs.map(s => el("li", {}, [
+        el("span", { class: "dot", style: `background:${energyVar(s.energy)}` }),
+        el("span", {}, [el("b", { text: s.track }), el("small", { text: `${s.artist} · ${s.detail}` })])
+      ])))
     ])));
   }
 
@@ -248,7 +275,8 @@
     traits(persona);
     lineup(stats);
     genres(persona);
-    setlist(stats);
+    setlist(stats, persona);
+    vibes(persona);
     skips(stats);
     tour(stats, persona);
     yearByYear(persona);

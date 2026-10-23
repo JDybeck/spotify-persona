@@ -2,10 +2,13 @@
 // Pure logic with no DOM access, shared by the Web Worker and the Node tests.
 (function (root, factory) {
   const isNode = typeof module === "object" && module.exports;
-  const api = factory(isNode ? require("./genres.js") : root.SpotifyPersona.genres);
+  const deps = isNode
+    ? { genres: require("./genres.js"), vibes: require("./vibes.js") }
+    : { genres: root.SpotifyPersona.genres, vibes: root.SpotifyPersona.vibes };
+  const api = factory(deps);
   if (isNode) module.exports = api;
   else root.SpotifyPersona.persona = api;
-})(typeof self !== "undefined" ? self : this, function ({ GENRES, genreOf }) {
+})(typeof self !== "undefined" ? self : this, function ({ genres: { GENRES, genreOf }, vibes: { songVibes } }) {
   const MIN_GENRE_COVERAGE = 0.25;
 
   // Each habit is scored against a typical listener, so the trait that stands out most names the archetype.
@@ -324,7 +327,8 @@
       receipts: receipts(stats),
       life: birth ? lifeStory(stats, birth) : null,
       chapters: chapters.map(c => chapterStory(stats, c, birth)),
-      yearByYear: stats.years.map(y => yearBreakdown(stats, y, { birth, chapters }))
+      yearByYear: stats.years.map(y => yearBreakdown(stats, y, { birth, chapters })),
+      vibes: songVibes(stats)
     };
   }
 

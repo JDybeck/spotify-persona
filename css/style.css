@@ -113,6 +113,21 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .era h3 { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; overflow-wrap: anywhere; }
 .era p { margin: 0; font-size: .9rem; color: var(--muted); }
 
+/* Vibes */
+:root { --e-heavy: var(--g-metal); --e-upbeat: var(--g-punk); --e-anthem: var(--g-rock); --e-groove: var(--g-hiphop); --e-calm: var(--g-chill); }
+.vibes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.vibe { background: var(--stage); border-radius: 4px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.vibe h3 { font-size: 1.6rem; font-weight: 900; text-transform: uppercase; }
+.vibe > p { margin: 0; color: var(--muted); font-size: .9rem; }
+.vibe ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.vibe li { display: grid; grid-template-columns: 8px 1fr; gap: 10px; align-items: baseline; min-width: 0; }
+.vibe li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--g-other); align-self: center; }
+.vibe li b { font-weight: 600; overflow-wrap: anywhere; }
+.vibe li small { display: block; color: var(--muted); font-size: .8rem; }
+.energy-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+.energy-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--sw); }
+.tagchip { display: inline-block; font-family: var(--mono); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; margin: 4px 4px 0 0; }
+
 /* Year by year */
 .years .col { cursor: pointer; }
 .years .col:hover .bar { filter: brightness(1.2); }

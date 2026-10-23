@@ -33,6 +33,7 @@ Any static file server works, for example `python -m http.server`.
 | --- | --- |
 | `src/analyze.js` | Normalizes both export formats and aggregates stats in one pass, file by file |
 | `src/genres.js` | Genre definitions and the artist-to-genre dictionary |
+| `src/vibes.js` | Song vibes (comfort, after dark, on repeat, phase, skip bait) from listening patterns, and energy from genre |
 | `src/persona.js` | Archetype, traits, genre mix, eras and receipts derived from the stats |
 | `src/worker.js` | Unzips with [JSZip](https://stuk.github.io/jszip/) and runs the analysis off the main thread |
 | `src/render.js` | Draws the results page |
@@ -54,6 +55,10 @@ npm test
 ### Genres
 
 Spotify's export contains no genre data, so genres come from a hand-curated dictionary in `src/genres.js`. The page shows how much of your listening it could tag, and artists outside the dictionary are left out of the genre mix. Adding artists there is the easiest way to contribute.
+
+### Song vibes
+
+Spotify's export has no audio analysis, and its audio-features API is closed to new apps, so vibes come from how you actually listen instead: songs you mostly play at night, songs that keep coming back across many years, songs you looped all day, one-year phases and songs you keep skipping. The energy mix (heavy, upbeat, calm and so on) comes from each artist's genre. Nothing is sent to any outside service.
 
 ### The archetype
 

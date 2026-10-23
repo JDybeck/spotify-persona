@@ -9,6 +9,9 @@
   const MIN_PLAY_MS = 30000;
   const MIN_ARTIST_STARTS_FOR_SKIPS = 100;
   const NIGHT_HOURS = [22, 23, 0, 1, 2, 3];
+  const MORNING_HOURS = [5, 6, 7, 8, 9];
+  const MIN_PROFILE_PLAYS = 15;
+  const MAX_PROFILES = 400;
 
   // Extended history: Streaming_History_Audio_2020.json. Basic account data: StreamingHistory_music_0.json, StreamingHistory0.json, StreamingHistory_podcast_0.json.
   const HISTORY_FILE = /(^|\/)(Streaming_History_Audio_[^/]*|StreamingHistory(_music|_podcast)?_?\d+)\.json$/i;
@@ -64,6 +67,7 @@
     const trackMs = new Map(), trackPlays = new Map(), trackStarts = new Map(), trackSkips = new Map();
     const yearMs = new Map(), yearArtistMs = new Map(), yearTrackPlays = new Map(), yearCountries = new Map();
     const yearStreams = new Map(), yearPlays = new Map(), yearSkips = new Map();
+    const trackNight = new Map(), trackMorning = new Map();
     const monthArtistMs = new Map(), dayMs = new Map(), dayTrackPlays = new Map(), showMs = new Map();
     const hourMs = new Array(24).fill(0), weekdayMs = new Array(7).fill(0);
     let totalMs = 0, podcastMs = 0, records = 0, plays = 0;
@@ -111,12 +115,46 @@
         add(yearPlays, year, 1);
         add(artistPlays, r.artist, 1);
         add(trackPlays, key, 1);
+        if (NIGHT_HOURS.includes(d.getHours())) add(trackNight, key, 1);
+        if (MORNING_HOURS.includes(d.getHours())) add(trackMorning, key, 1);
         if (!artistYears.has(r.artist)) artistYears.set(r.artist, new Set());
         artistYears.get(r.artist).add(year);
         if (!yearTrackPlays.has(year)) yearTrackPlays.set(year, new Map());
         add(yearTrackPlays.get(year), key, 1);
         add(dayTrackPlays, `${dayKey(d)}\u0001${key}`, 1);
       }
+    }
+
+    /** How each frequently played song was listened to: when, over how many years, and how bursty. */
+    function buildTrackProfiles() {
+      const candidates = topEntries(trackPlays, MAX_PROFILES).filter(([, n]) => n >= MIN_PROFILE_PLAYS);
+      const wanted = new Set(candidates.map(([key]) => key));
+      const maxDay = new Map();
+      for (const [k, n] of dayTrackPlays) {
+        const key = k.slice(k.indexOf("\u0001") + 1);
+        if (wanted.has(key) && n > (maxDay.get(key) || 0)) maxDay.set(key, n);
+      }
+      return candidates.map(([key, plays]) => {
+        let years = 0, peakYear = null, peakPlays = 0;
+        for (const [year, tracks] of yearTrackPlays) {
+          const n = tracks.get(key);
+          if (!n) continue;
+          years++;
+          if (n > peakPlays) { peakPlays = n; peakYear = year; }
+        }
+        return {
+          ...splitKey(key),
+          plays,
+          starts: trackStarts.get(key),
+          skips: trackSkips.get(key) || 0,
+          years,
+          peakYear,
+          peakYearShare: peakPlays / plays,
+          maxDay: maxDay.get(key) || 0,
+          night: trackNight.get(key) || 0,
+          morning: trackMorning.get(key) || 0
+        };
+      });
     }
 
     function finish() {
@@ -129,6 +167,7 @@
         if (month <= lastMonth - 12) continue;
         for (const [a, ms] of artists) add(recentArtistMs, a, ms);
       }
+      const trackProfiles = buildTrackProfiles();
       const newArtistsByYear = new Map();
       for (const years of artistYears.values()) add(newArtistsByYear, Math.min(...years), 1);
       const biggestDay = topEntries(dayMs, 1)[0];
@@ -179,6 +218,7 @@
           .map(([name, starts]) => ({ name, starts, skips: artistSkips.get(name) || 0, rate: (artistSkips.get(name) || 0) / starts }))
           .sort((a, b) => b.rate - a.rate)
           .slice(0, 15),
+        trackProfiles,
         shows: topEntries(showMs, 8).map(([name, ms]) => ({ name, hours: hours(ms) }))
       };
     }
@@ -186,5 +226,5 @@
     return { addRecord, finish };
   }
 
-  return { createAggregator, normalize, isHistoryFile, MIN_PLAY_MS, MIN_ARTIST_STARTS_FOR_SKIPS };
+  return { createAggregator, normalize, isHistoryFile, MIN_PLAY_MS, MIN_ARTIST_STARTS_FOR_SKIPS, MIN_PROFILE_PLAYS };
 });

@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createAggregator, normalize, isHistoryFile, MIN_ARTIST_STARTS_FOR_SKIPS } = require("../src/analyze.js");
+const { createAggregator, normalize, isHistoryFile, MIN_ARTIST_STARTS_FOR_SKIPS, MIN_PROFILE_PLAYS } = require("../src/analyze.js");
 
 function extended(overrides = {}) {
   return {
@@ -115,6 +115,22 @@ test("per-year breakdown counts streams, plays, skips and newly discovered artis
   assert.equal(y2021.distinctArtists, 2);
   assert.equal(y2021.newArtists, 1, "Old was discovered in 2020");
   assert.equal(y2021.topTracks.length, 2);
+});
+
+test("track profiles describe when and how often frequently played songs ran", () => {
+  const agg = createAggregator();
+  // 12 plays on one day in 2020, 4 in 2021: all at local 23:00.
+  const at = (y, m, d) => new Date(y, m - 1, d, 23, 0).toISOString();
+  for (let i = 0; i < 12; i++) agg.addRecord(extended({ ts: at(2020, 3, 1) }));
+  for (let i = 0; i < 4; i++) agg.addRecord(extended({ ts: at(2021, 3, i + 1), skipped: true }));
+  // A song below the play threshold gets no profile.
+  agg.addRecord(extended({ master_metadata_track_name: "Rare" }));
+  const profiles = agg.finish().trackProfiles;
+  assert.equal(profiles.length, 1);
+  const p = profiles[0];
+  assert.ok(p.plays >= MIN_PROFILE_PLAYS);
+  assert.deepEqual([p.track, p.plays, p.years, p.peakYear, p.maxDay, p.night, p.morning, p.skips], ["Song", 16, 2, 2020, 12, 16, 0, 4]);
+  assert.equal(p.peakYearShare, 12 / 16);
 });
 
 test("counts streams per country per year and ignores the unknown ZZ code", () => {
