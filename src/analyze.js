@@ -29,7 +29,8 @@
         ms: raw.ms_played || 0,
         skipped: raw.skipped === true || raw.reason_end === "fwdbtn",
         shuffle: raw.shuffle === true,
-        incognito: raw.incognito_mode === true
+        incognito: raw.incognito_mode === true,
+        country: raw.conn_country && raw.conn_country !== "ZZ" ? raw.conn_country : null
       };
       if (raw.episode_show_name) return { ...base, kind: "podcast", show: raw.episode_show_name };
       if (raw.master_metadata_album_artist_name && raw.master_metadata_track_name) {
@@ -39,7 +40,7 @@
     }
     if (raw.endTime !== undefined) {
       // Basic format timestamps are UTC without a zone marker: "2024-01-31 18:05".
-      const base = { date: new Date(raw.endTime.replace(" ", "T") + "Z"), ms: raw.msPlayed || 0, skipped: null, shuffle: null, incognito: null };
+      const base = { date: new Date(raw.endTime.replace(" ", "T") + "Z"), ms: raw.msPlayed || 0, skipped: null, shuffle: null, incognito: null, country: null };
       if (raw.podcastName) return { ...base, kind: "podcast", show: raw.podcastName };
       if (raw.artistName && raw.trackName && raw.artistName !== "Unknown Artist") {
         return { ...base, kind: "music", artist: raw.artistName, track: raw.trackName };
@@ -61,7 +62,8 @@
     const artistMs = new Map(), artistPlays = new Map(), artistYears = new Map();
     const artistStarts = new Map(), artistSkips = new Map();
     const trackMs = new Map(), trackPlays = new Map(), trackStarts = new Map(), trackSkips = new Map();
-    const yearMs = new Map(), yearArtistMs = new Map(), yearTrackPlays = new Map();
+    const yearMs = new Map(), yearArtistMs = new Map(), yearTrackPlays = new Map(), yearCountries = new Map();
+    const yearStreams = new Map(), yearPlays = new Map(), yearSkips = new Map();
     const monthArtistMs = new Map(), dayMs = new Map(), dayTrackPlays = new Map(), showMs = new Map();
     const hourMs = new Array(24).fill(0), weekdayMs = new Array(7).fill(0);
     let totalMs = 0, podcastMs = 0, records = 0, plays = 0;
@@ -79,8 +81,13 @@
       add(artistMs, r.artist, r.ms);
       add(trackMs, key, r.ms);
       add(yearMs, year, r.ms);
+      add(yearStreams, year, 1);
       if (!yearArtistMs.has(year)) yearArtistMs.set(year, new Map());
       add(yearArtistMs.get(year), r.artist, r.ms);
+      if (r.country) {
+        if (!yearCountries.has(year)) yearCountries.set(year, new Map());
+        add(yearCountries.get(year), r.country, 1);
+      }
       const month = year * 12 + d.getMonth();
       if (!monthArtistMs.has(month)) monthArtistMs.set(month, new Map());
       add(monthArtistMs.get(month), r.artist, r.ms);
@@ -92,7 +99,7 @@
 
       if (r.skipped !== null) {
         hasBehaviorData = true;
-        if (r.skipped) { skipped++; add(trackSkips, key, 1); add(artistSkips, r.artist, 1); }
+        if (r.skipped) { skipped++; add(trackSkips, key, 1); add(artistSkips, r.artist, 1); add(yearSkips, year, 1); }
         if (r.shuffle) shuffled++;
         if (r.incognito) incognito++;
       }
@@ -101,6 +108,7 @@
 
       if (r.ms >= MIN_PLAY_MS) {
         plays++;
+        add(yearPlays, year, 1);
         add(artistPlays, r.artist, 1);
         add(trackPlays, key, 1);
         if (!artistYears.has(r.artist)) artistYears.set(r.artist, new Set());
@@ -121,6 +129,8 @@
         if (month <= lastMonth - 12) continue;
         for (const [a, ms] of artists) add(recentArtistMs, a, ms);
       }
+      const newArtistsByYear = new Map();
+      for (const years of artistYears.values()) add(newArtistsByYear, Math.min(...years), 1);
       const biggestDay = topEntries(dayMs, 1)[0];
       const longest = topEntries(trackMs, 1)[0];
 
@@ -148,7 +158,14 @@
           year,
           hours: hours(yearMs.get(year)),
           topArtists: topEntries(yearArtistMs.get(year), 10).map(([name, ms]) => ({ name, hours: hours(ms) })),
-          topTrack: yearTrackPlays.has(year) ? track(topEntries(yearTrackPlays.get(year), 1)[0][0]) : null
+          topTrack: yearTrackPlays.has(year) ? track(topEntries(yearTrackPlays.get(year), 1)[0][0]) : null,
+          topTracks: yearTrackPlays.has(year) ? topEntries(yearTrackPlays.get(year), 5).map(([key, n]) => ({ ...track(key), plays: n })) : [],
+          streams: yearStreams.get(year),
+          plays: yearPlays.get(year) || 0,
+          skipRate: hasBehaviorData ? (yearSkips.get(year) || 0) / yearStreams.get(year) : null,
+          distinctArtists: yearArtistMs.get(year).size,
+          newArtists: newArtistsByYear.get(year) || 0,
+          countries: yearCountries.has(year) ? topEntries(yearCountries.get(year), 5).map(([code, streams]) => ({ code, streams })) : []
         })),
         topArtists: topEntries(artistMs, 150).map(([name, ms]) => ({
           name, hours: hours(ms), plays: artistPlays.get(name) || 0, years: artistYears.has(name) ? artistYears.get(name).size : 0

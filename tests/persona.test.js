@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { genreOf } = require("../src/genres.js");
-const { buildPersona, genreMix, pickHabit, eras, lifeStory, ageInYear } = require("../src/persona.js");
+const { buildPersona, genreMix, pickHabit, eras, lifeStory, chapterStory, yearBreakdown, ageInYear } = require("../src/persona.js");
 
 function stats(overrides = {}) {
   return {
@@ -157,6 +157,54 @@ test("years before birth are ignored and no birth date means no life story", () 
   const s = stats({ years: [{ year: 2020, hours: 5, topArtists: [{ name: "Avicii", hours: 5 }], topTrack: null }] });
   assert.equal(lifeStory(s, { year: 2021, month: 1 }).stages.length, 0);
   assert.equal(buildPersona(s).life, null);
+});
+
+test("chapterStory covers only the chapter's years and blends their countries", () => {
+  const s = stats({
+    years: [
+      { year: 2016, hours: 10, topArtists: [{ name: "Avicii", hours: 10 }], topTrack: { track: "Levels", artist: "Avicii" }, countries: [{ code: "SE", streams: 100 }] },
+      { year: 2017, hours: 30, topArtists: [{ name: "Architects", hours: 25 }], topTrack: { track: "Doomsday", artist: "Architects" }, countries: [{ code: "AU", streams: 75 }, { code: "SE", streams: 25 }] },
+      { year: 2018, hours: 20, topArtists: [{ name: "Beartooth", hours: 20 }], topTrack: { track: "Disease", artist: "Beartooth" }, countries: [{ code: "AU", streams: 50 }] }
+    ]
+  });
+  const c = chapterStory(s, { kind: "abroad", label: "Australia", from: 2017, to: 2018 }, { year: 1994, month: 11 });
+  assert.equal(c.empty, false);
+  assert.equal(c.kindName, "Abroad");
+  assert.equal(c.hours, 50);
+  assert.deepEqual([c.fromAge, c.toAge], [22, 23]);
+  assert.equal(c.genre, "core");
+  assert.equal(c.song.track, "Doomsday");
+  assert.deepEqual(c.countries, [{ code: "AU", share: 125 / 150 }, { code: "SE", share: 25 / 150 }]);
+});
+
+test("a chapter without any history is marked empty and unknown kinds fall back", () => {
+  const c = chapterStory(stats(), { kind: "weird", label: "Before Spotify", from: 1999, to: 2002 });
+  assert.equal(c.empty, true);
+  assert.equal(c.kindName, "Chapter");
+  assert.equal(c.fromAge, undefined);
+});
+
+test("buildPersona passes chapters through with the birth date", () => {
+  const p = buildPersona(stats(), { birth: { year: 1994, month: 11 }, chapters: [{ kind: "study", label: "Uni", from: 2022, to: 2023 }] });
+  assert.equal(p.chapters.length, 1);
+  assert.equal(p.chapters[0].fromAge, 27);
+  assert.ok(p.life);
+});
+
+test("yearBreakdown adds per-day average, change, age and overlapping chapters", () => {
+  const s = stats();
+  const y = s.years[1];
+  const b = yearBreakdown(s, y, {
+    birth: { year: 1994, month: 11 },
+    chapters: [{ kind: "study", label: "Uni", from: 2020, to: 2023 }, { kind: "abroad", label: "Spain", from: 2024, to: 2024 }]
+  });
+  assert.equal(b.year, 2023);
+  assert.equal(b.perDay, 30 / 365);
+  assert.equal(b.change, 0, "2023 had the same hours as 2022");
+  assert.equal(b.age, 28);
+  assert.deepEqual(b.chapters, ["Uni"]);
+  assert.equal(b.mix[0].key, "edm");
+  assert.equal(yearBreakdown(s, s.years[0]).change, null, "the first year has nothing to compare with");
 });
 
 test("receipts skip podcast and incognito cards when there is nothing to show", () => {

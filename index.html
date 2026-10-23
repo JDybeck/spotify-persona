@@ -101,6 +101,13 @@
     <div class="eras" id="eras"></div>
   </section>
 
+  <section id="yearSection">
+    <div class="eyebrow">Year by year</div>
+    <h2>Pick a year</h2>
+    <div class="year-chips" id="yearChips" role="tablist" aria-label="Years"></div>
+    <div class="year-detail" id="yearDetail" role="tabpanel"></div>
+  </section>
+
   <section id="life">
     <div class="eyebrow">Soundtrack of your life</div>
     <h2>The times of your life</h2>
@@ -117,6 +124,24 @@
     </form>
     <p class="lede" id="lifeNote"></p>
     <div class="stages" id="stages"></div>
+
+    <h3 class="subhead">Your chapters</h3>
+    <p class="lede">Add the big chapters of your life, like where you grew up, when you studied or the years you lived abroad, and see what you were listening to. Add as many as you like.</p>
+    <form class="born chapter-form" id="chapterForm">
+      <select id="chapterKind" aria-label="Chapter type">
+        <option value="home">Grew up in</option>
+        <option value="study">Studied at</option>
+        <option value="abroad">Lived abroad in</option>
+        <option value="work">Worked at</option>
+        <option value="other">Other</option>
+      </select>
+      <input id="chapterLabel" type="text" maxlength="60" placeholder="Where or what, e.g. Australia" aria-label="Chapter name">
+      <input id="chapterFrom" type="number" inputmode="numeric" min="1920" max="2030" placeholder="From" aria-label="From year">
+      <input id="chapterTo" type="number" inputmode="numeric" min="1920" max="2030" placeholder="To" aria-label="To year">
+      <button type="submit" class="again">Add chapter</button>
+    </form>
+    <p id="chapterError" class="form-error" role="status" aria-live="polite"></p>
+    <div class="stages" id="chapters"></div>
   </section>
 
   <section>

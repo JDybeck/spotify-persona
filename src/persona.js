@@ -23,11 +23,11 @@
   // Lowercases a label for use mid-sentence, but leaves acronyms like "EDM" alone.
   const lowerFirstWord = s => /^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s;
 
-  /** Hours per genre over the top artists, plus how much of all listening the dictionary could tag. */
-  function genreMix(stats) {
+  /** Genre shares over a list of { name, hours } artists. Untagged artists are left out. */
+  function mixOf(artists) {
     const byGenre = new Map();
     let tagged = 0;
-    for (const a of stats.topArtists) {
+    for (const a of artists) {
       const g = genreOf(a.name);
       if (!g) continue;
       byGenre.set(g, (byGenre.get(g) || 0) + a.hours);
@@ -36,7 +36,25 @@
     const shares = [...byGenre.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([key, h]) => ({ key, label: GENRES[key].label, hours: h, share: tagged ? h / tagged : 0 }));
-    return { shares, taggedHours: tagged, coverage: stats.totalHours ? tagged / stats.totalHours : 0 };
+    return { shares, taggedHours: tagged };
+  }
+
+  /** Hours per genre over the top artists, plus how much of all listening the dictionary could tag. */
+  function genreMix(stats) {
+    const mix = mixOf(stats.topArtists);
+    return { ...mix, coverage: stats.totalHours ? mix.taggedHours / stats.totalHours : 0 };
+  }
+
+  /** Share of streams per country across some years: the top 3, leaving out stray ones under 1%. */
+  function countryShares(years) {
+    const streams = new Map();
+    for (const y of years) for (const c of y.countries || []) streams.set(c.code, (streams.get(c.code) || 0) + c.streams);
+    const total = [...streams.values()].reduce((s, n) => s + n, 0);
+    return [...streams.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([code, n]) => ({ code, share: n / total }))
+      .filter((c, i) => i === 0 || c.share >= 0.01);
   }
 
   function habitScores(stats) {
@@ -211,6 +229,66 @@
     return { firstAge: ageOn(stats.first, birth), stages: result, stillListening };
   }
 
+  const CHAPTER_KINDS = {
+    home:   { name: "Grew up" },
+    study:  { name: "Studies" },
+    abroad: { name: "Abroad" },
+    work:   { name: "Work" },
+    other:  { name: "Chapter" }
+  };
+
+  /**
+   * The soundtrack of a user-defined chapter ({ kind, label, from, to }), plus the countries Spotify
+   * saw streams from during it. Returns empty: true when there is no history in those years.
+   */
+  function chapterStory(stats, chapter, birth = null) {
+    const years = stats.years.filter(y => y.year >= chapter.from && y.year <= chapter.to);
+    const base = { ...chapter, kindName: (CHAPTER_KINDS[chapter.kind] || CHAPTER_KINDS.other).name };
+    if (birth) {
+      base.fromAge = ageInYear(chapter.from, birth);
+      base.toAge = ageInYear(chapter.to, birth);
+    }
+    if (years.length === 0) return { ...base, empty: true };
+
+    const era = summarizeEra(years);
+    const peakYear = years.reduce((a, b) => (b.hours > a.hours ? b : a));
+    const countries = countryShares(years);
+
+    return {
+      ...base,
+      empty: false,
+      hours: years.reduce((s, y) => s + y.hours, 0),
+      top: era.top,
+      genre: era.genre,
+      genreLabel: era.genre ? GENRES[era.genre].label : null,
+      song: peakYear.topTrack,
+      countries
+    };
+  }
+
+  /** Everything about one calendar year, including the user's age and chapters that overlap it. */
+  function yearBreakdown(stats, y, { birth = null, chapters = [] } = {}) {
+    const daysInYear = (y.year % 4 === 0 && (y.year % 100 !== 0 || y.year % 400 === 0)) ? 366 : 365;
+    const index = stats.years.indexOf(y);
+    const previous = index > 0 ? stats.years[index - 1] : null;
+    return {
+      year: y.year,
+      hours: y.hours,
+      perDay: y.hours / daysInYear,
+      change: previous && previous.hours ? y.hours / previous.hours - 1 : null,
+      plays: y.plays,
+      distinctArtists: y.distinctArtists,
+      newArtists: y.newArtists,
+      skipRate: y.skipRate,
+      age: birth ? ageInYear(y.year, birth) : null,
+      chapters: chapters.filter(c => y.year >= c.from && y.year <= c.to).map(c => c.label),
+      topArtists: y.topArtists.slice(0, 5),
+      topTracks: y.topTracks || [],
+      mix: mixOf(y.topArtists).shares,
+      countries: countryShares([y])
+    };
+  }
+
   function receipts(stats) {
     const list = [];
     const now = stats.years[stats.years.length - 1];
@@ -228,8 +306,11 @@
     return list;
   }
 
-  /** Builds everything the page shows on top of the raw stats. birth ({ year, month }) is optional. */
-  function buildPersona(stats, birth = null) {
+  /**
+   * Builds everything the page shows on top of the raw stats.
+   * profile is optional: { birth: { year, month }, chapters: [{ kind, label, from, to }] }.
+   */
+  function buildPersona(stats, { birth = null, chapters = [] } = {}) {
     const mix = genreMix(stats);
     const scores = habitScores(stats);
     const traits = Object.entries(scores)
@@ -241,9 +322,11 @@
       mix,
       eras: eras(stats),
       receipts: receipts(stats),
-      life: birth ? lifeStory(stats, birth) : null
+      life: birth ? lifeStory(stats, birth) : null,
+      chapters: chapters.map(c => chapterStory(stats, c, birth)),
+      yearByYear: stats.years.map(y => yearBreakdown(stats, y, { birth, chapters }))
     };
   }
 
-  return { buildPersona, genreMix, habitScores, pickHabit, eras, lifeStory, ageInYear, HABITS };
+  return { buildPersona, genreMix, habitScores, pickHabit, eras, lifeStory, chapterStory, yearBreakdown, ageInYear, HABITS, CHAPTER_KINDS };
 });

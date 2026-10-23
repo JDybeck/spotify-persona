@@ -131,6 +131,100 @@
     ])));
   }
 
+  const countryNames = (() => {
+    try { return new Intl.DisplayNames(["en"], { type: "region" }); } catch { return null; }
+  })();
+  // Two regional-indicator letters render as the country's flag.
+  const flag = code => /^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : "";
+  const countryName = code => (countryNames && countryNames.of(code)) || code;
+  const countryLine = countries => countries.map(c => `${flag(c.code)} ${countryName(c.code)} ${pct(c.share)}`).join(" · ");
+  const range = (a, b) => (a === b ? `${a}` : `${a}–${b}`);
+
+  function chapters(persona, onRemove) {
+    fill("chapters", persona.chapters.map((c, i) => {
+      const meta = [range(c.from, c.to)];
+      if (c.fromAge !== undefined) meta.push(`age ${range(c.fromAge, c.toAge)}`);
+      if (!c.empty) meta.push(`${fmt(c.hours)} h`);
+      const remove = el("button", { type: "button", class: "remove", text: "Remove", "aria-label": `Remove ${c.label}` });
+      remove.addEventListener("click", () => onRemove(i));
+      return el("div", { class: `stage${c.empty ? " empty" : ""}`, style: `border-top-color:${genreVar(c.genre)}` }, [
+        el("div", { class: "head" }, [el("span", { class: "kind", text: c.kindName }), remove]),
+        el("h3", { text: c.label }),
+        el("span", { class: "when num", text: meta.join(" · ") }),
+        ...(c.empty ? [el("p", { text: "No streaming history from these years." })] : [
+          el("p", {}, [el("b", { text: "Headliners: " }), c.top.join(", ")]),
+          c.song ? el("p", {}, [el("b", { text: "Your song: " }), `"${c.song.track}" by ${c.song.artist}`]) : "",
+          c.countries.length ? el("p", {}, [el("b", { text: "Streaming from: " }), countryLine(c.countries)]) : "",
+          c.genreLabel ? el("span", { class: "genre", style: `color:${genreVar(c.genre)}`, text: c.genreLabel }) : ""
+        ])
+      ]);
+    }));
+  }
+
+  let selectedYear = null;
+
+  function yearDetail(b) {
+    const head = [el("b", { text: `${fmt(b.hours)} hours` }), `, about ${b.perDay.toFixed(1)} a day.`];
+    if (b.change !== null) {
+      head.push(" ", el("span", { class: b.change >= 0 ? "up" : "down", text: `${b.change >= 0 ? "+" : "−"}${pct(Math.abs(b.change))}` }), " vs the year before.");
+    }
+    if (b.age !== null && b.age >= 0) head.push(` You were ${b.age}.`);
+    if (b.chapters.length) head.push(" ", el("b", { text: b.chapters.join(" · ") }));
+
+    const tiles = [
+      [fmt(b.plays), "plays"],
+      [fmt(b.distinctArtists), "artists"],
+      [fmt(b.newArtists), "new artists"]
+    ];
+    if (b.skipRate !== null) tiles.push([pct(b.skipRate), "skipped"]);
+
+    const maxArtist = b.topArtists.length ? b.topArtists[0].hours : 1;
+    const foot = [];
+    if (b.mix.length) {
+      foot.push(el("div", { class: "dna small", role: "img", "aria-label": "Genre mix" },
+        b.mix.map(s => el("i", { style: `width:${s.share * 100}%;background:${genreVar(s.key)}`, title: `${s.label} ${pct(s.share)}` }))));
+      foot.push(el("p", {}, [el("b", { text: "Sound: " }), b.mix.slice(0, 3).map(s => `${s.label} ${pct(s.share)}`).join(" · ")]));
+    }
+    if (b.countries.length) foot.push(el("p", {}, [el("b", { text: "Streaming from: " }), countryLine(b.countries)]));
+
+    return [
+      el("div", { class: "year-head" }, [el("span", { class: "big num", text: String(b.year) }), el("p", {}, head)]),
+      el("div", { class: "tiles" }, tiles.map(([value, label]) => el("div", { class: "tile" }, [el("b", { class: "num", text: value }), el("span", { text: label })]))),
+      el("div", { class: "year-cols" }, [
+        el("div", {}, [el("h3", { text: "Top artists" }), el("ol", { class: "ranked" }, b.topArtists.map(a => el("li", {}, [
+          el("span", { text: a.name }),
+          el("span", { class: "stat num", text: `${fmt(a.hours)} h` }),
+          el("div", { class: "meter" }, el("i", { style: `width:${a.hours / maxArtist * 100}%` }))
+        ])))]),
+        el("div", {}, [el("h3", { text: "Top songs" }), el("ol", { class: "ranked" }, b.topTracks.map(t => el("li", {}, [
+          el("span", {}, [t.track, el("small", { text: t.artist })]),
+          el("span", { class: "stat num", text: `${fmt(t.plays)} plays` })
+        ])))])
+      ]),
+      foot.length ? el("div", { class: "year-foot" }, foot) : ""
+    ];
+  }
+
+  function yearByYear(persona) {
+    const years = persona.yearByYear;
+    if (!years.some(b => b.year === selectedYear)) selectedYear = years[years.length - 1].year;
+    const select = year => {
+      selectedYear = year;
+      for (const chip of $("yearChips").children) chip.setAttribute("aria-selected", String(Number(chip.dataset.year) === year));
+      fill("yearDetail", yearDetail(years.find(b => b.year === year)));
+    };
+    fill("yearChips", years.map(b => {
+      const chip = el("button", { type: "button", role: "tab", "data-year": String(b.year), text: String(b.year) });
+      chip.addEventListener("click", () => select(b.year));
+      return chip;
+    }));
+    $("years").querySelectorAll(".col").forEach((col, i) => col.addEventListener("click", () => {
+      select(years[i].year);
+      $("yearSection").scrollIntoView({ block: "start", behavior: "smooth" });
+    }));
+    select(selectedYear);
+  }
+
   function clock(stats) {
     const max = Math.max(...stats.hours);
     const peak = stats.hours.indexOf(max);
@@ -149,7 +243,7 @@
     ])));
   }
 
-  function render(stats, persona) {
+  function render(stats, persona, handlers = {}) {
     hero(stats, persona);
     traits(persona);
     lineup(stats);
@@ -157,7 +251,9 @@
     setlist(stats);
     skips(stats);
     tour(stats, persona);
+    yearByYear(persona);
     life(persona);
+    chapters(persona, handlers.onRemoveChapter || (() => {}));
     clock(stats);
     receipts(persona);
     $("foot").textContent = `Built from your Spotify streaming history, ${stats.first} to ${stats.last}. Hours are total time played, including skips. A play counts streams of 30 seconds or more. Times are in your browser's time zone. Nothing left this browser.`;

@@ -1,6 +1,8 @@
 # Spotify Persona
 
-Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you: an archetype, your all-time festival lineup, genre mix, most played and most skipped songs, listening eras and a few embarrassing receipts.
+Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you: an archetype, your all-time festival lineup, genre mix, most played and most skipped songs, listening eras, a year-by-year breakdown and a few embarrassing receipts.
+
+Add your birth month and year to see the soundtrack of each life stage (teenage years, early twenties and so on). Add your own chapters, like where you grew up, where you studied or the years you lived abroad, to see what you listened to then and which countries you streamed from. These details are only saved in your browser.
 
 **Everything runs in your browser.** The zip is read locally by a Web Worker, nothing is uploaded, and there is no backend.
 

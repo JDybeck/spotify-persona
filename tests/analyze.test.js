@@ -102,6 +102,30 @@ test("counts the most played track per day as an obsession", () => {
   assert.equal(s.obsessions[0].track, "Song");
 });
 
+test("per-year breakdown counts streams, plays, skips and newly discovered artists", () => {
+  const agg = createAggregator();
+  agg.addRecord(extended({ ts: "2020-05-01T12:00:00Z", master_metadata_album_artist_name: "Old" }));
+  agg.addRecord(extended({ ts: "2021-05-01T12:00:00Z", master_metadata_album_artist_name: "Old" }));
+  agg.addRecord(extended({ ts: "2021-05-02T12:00:00Z", master_metadata_album_artist_name: "New", skipped: true }));
+  agg.addRecord(extended({ ts: "2021-05-03T12:00:00Z", master_metadata_album_artist_name: "New", ms_played: 5000 }));
+  const y2021 = agg.finish().years.find(y => y.year === 2021);
+  assert.equal(y2021.streams, 3);
+  assert.equal(y2021.plays, 2);
+  assert.equal(y2021.skipRate, 1 / 3);
+  assert.equal(y2021.distinctArtists, 2);
+  assert.equal(y2021.newArtists, 1, "Old was discovered in 2020");
+  assert.equal(y2021.topTracks.length, 2);
+});
+
+test("counts streams per country per year and ignores the unknown ZZ code", () => {
+  const agg = createAggregator();
+  agg.addRecord(extended({ conn_country: "SE" }));
+  agg.addRecord(extended({ conn_country: "SE" }));
+  agg.addRecord(extended({ conn_country: "AU" }));
+  agg.addRecord(extended({ conn_country: "ZZ" }));
+  assert.deepEqual(agg.finish().years[0].countries, [{ code: "SE", streams: 2 }, { code: "AU", streams: 1 }]);
+});
+
 test("first stream and per-year breakdown follow timestamps, not input order", () => {
   const agg = createAggregator();
   agg.addRecord(extended({ ts: "2022-06-01T12:00:00Z", master_metadata_track_name: "Later" }));

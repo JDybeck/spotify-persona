@@ -113,6 +113,39 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .era h3 { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; overflow-wrap: anywhere; }
 .era p { margin: 0; font-size: .9rem; color: var(--muted); }
 
+/* Year by year */
+.years .col { cursor: pointer; }
+.years .col:hover .bar { filter: brightness(1.2); }
+.year-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.year-chips button { font: 500 .85rem var(--mono); color: var(--muted); background: var(--stage); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+.year-chips button:hover { color: var(--ink); border-color: var(--bar); }
+.year-chips button[aria-selected="true"] { color: var(--night); background: var(--sunset); border-color: var(--sunset); }
+.year-chips button:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
+.year-detail { display: grid; gap: 28px; border: 1px solid var(--rule); padding: clamp(18px, 4vw, 32px); min-width: 0; }
+.year-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; }
+.year-head .big { font-family: var(--display); font-weight: 900; font-size: clamp(3.5rem, 12vw, 6rem); line-height: .9; color: var(--sunset); }
+.year-head p { margin: 0; color: var(--muted); max-width: 50ch; }
+.year-head p b { color: var(--ink); font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.tile { background: var(--stage); border-radius: 4px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
+.tile b { font-family: var(--display); font-weight: 800; font-size: 1.9rem; line-height: 1; }
+.tile span { font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.year-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px 40px; }
+.year-cols > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.year-cols h3 { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; }
+.ranked { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ranked li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; min-width: 0; }
+.ranked li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.ranked small { color: var(--muted); display: block; font-size: .82rem; }
+.ranked .stat { font-family: var(--mono); font-size: .8rem; color: var(--muted); white-space: nowrap; }
+.ranked .meter { grid-column: 1 / 3; height: 5px; }
+.dna.small { height: 14px; border-radius: 4px; }
+.year-foot { display: grid; gap: 8px; color: var(--muted); font-size: .9rem; }
+.year-foot p { margin: 0; }
+.year-foot b { color: var(--ink); font-weight: 600; }
+.up { color: var(--g-indie); }
+.down { color: var(--g-metal); }
+
 /* Life stages */
 .born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .born label { font-family: var(--mono); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
@@ -126,6 +159,15 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .stage p { margin: 0; font-size: .92rem; overflow-wrap: anywhere; }
 .stage p b { font-weight: 600; }
 .stage .genre { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+.stage .kind { font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--sunset); }
+.stage .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.stage .remove { font: 500 .75rem var(--mono); color: var(--muted); background: none; border: 0; padding: 4px; cursor: pointer; text-decoration: underline; }
+.stage .remove:hover { color: var(--ink); }
+.stage .remove:focus-visible { outline: 2px solid var(--sunset); }
+.stage.empty p { color: var(--muted); }
+.subhead { font-size: 1.8rem; font-weight: 900; text-transform: uppercase; margin-top: 16px; }
+.chapter-form #chapterLabel { flex: 1 1 14em; min-width: 0; width: auto; }
+.form-error { margin: 0; color: var(--error); font-size: .9rem; min-height: 1.4em; }
 
 /* Clock */
 .hours { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; align-items: end; height: 160px; }
