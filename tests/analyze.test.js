@@ -27,6 +27,23 @@ test("isHistoryFile matches both export formats and ignores the rest", () => {
   assert.ok(!isHistoryFile("ReadMeFirst_ExtendedStreamingHistory.pdf"));
 });
 
+test("isHistoryFile never matches payment, personal or other account files", () => {
+  const forbidden = [
+    "Spotify Account Data/Payments.json",
+    "Spotify Account Data/Userdata.json",
+    "Spotify Account Data/Identity.json",
+    "Spotify Account Data/Identifiers.json",
+    "Spotify Account Data/CustomerServiceHistory.json",
+    "Spotify Account Data/DuoNewFamily.json",
+    "Spotify Account Data/Inferences.json",
+    "Spotify Account Data/SearchQueries.json",
+    "Spotify Account Data/Follow.json",
+    "Spotify Technical Log Information/StreamingHistory_Payments.json",
+    "Payments_StreamingHistory0.json.bak"
+  ];
+  for (const path of forbidden) assert.ok(!isHistoryFile(path), path);
+});
+
 test("normalize reads extended records and treats a forward-button end as a skip", () => {
   const r = normalize(extended({ skipped: null, reason_end: "fwdbtn" }));
   assert.equal(r.kind, "music");

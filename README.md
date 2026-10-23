@@ -19,6 +19,13 @@ Live at **[jdybeck.github.io/spotify-persona](https://jdybeck.github.io/spotify-
 
 The basic **Account data** export also works if that is what you have, but it only covers the last year and has no skip or shuffle data, so those sections are hidden.
 
+## Privacy
+
+- **Nothing is uploaded.** There is no backend. The zip is read in your browser and the results only exist in that tab.
+- **Only listening history is read.** The worker opens files named `Streaming_History_Audio_*.json` or `StreamingHistory*.json` and nothing else. Every other file in the export is never decompressed or parsed.
+- **Payment data is never read or stored.** This is a hard rule: payment, subscription and identity files are excluded, and a test fails if the file filter ever matches them.
+- **What is stored.** Only what you choose to type in yourself (a first name for the greeting, birth date and life chapters), kept in your own browser's local storage. Personal details are never read from the export. Clearing site data removes it.
+
 ## Run locally
 
 The page loads its scripts as separate files and uses a Web Worker, so it needs to be served over HTTP rather than opened as a file:
