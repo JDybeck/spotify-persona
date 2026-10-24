@@ -41,6 +41,8 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 #status.error { color: var(--error); }
 .steps { margin: 0; padding-left: 1.3em; color: var(--muted); display: grid; gap: 6px; max-width: 62ch; }
 .steps b { color: var(--ink); font-weight: 600; }
+/* Windows has no flag emoji, so flags use Noto Color Emoji; Google Fonts only sends the glyph ranges a page uses. */
+.flag { font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; font-style: normal; }
 .again { justify-self: start; font: 500 .85rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: var(--stage); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 16px; cursor: pointer; }
 .again:hover { border-color: var(--sunset); }
 

@@ -44,6 +44,7 @@ Any static file server works, for example `python -m http.server`.
 | --- | --- |
 | `src/analyze.js` | Normalizes both export formats and aggregates stats in one pass, file by file |
 | `src/genres.js` | Genre definitions and the artist-to-genre dictionary |
+| `src/locale.js` | Guesses the visitor's country from browser settings and shows Spotify's own data-box labels in its language(s) |
 | `src/search.js` | Accent-insensitive search over artists, songs and albums, plus their detail views |
 | `src/moments.js` | On this day, birthday songs, discoveries and yearly artist ranks |
 | `src/explore.js` | Queries the per-hour timeline for any date range and genre |

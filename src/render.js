@@ -167,9 +167,10 @@
     try { return new Intl.DisplayNames(["en"], { type: "region" }); } catch { return null; }
   })();
   // Two regional-indicator letters render as the country's flag.
-  const flag = code => /^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : "";
+  const flag = code => el("i", { class: "flag", text: SpotifyPersona.locale.flagOf(code) });
   const countryName = code => (countryNames && countryNames.of(code)) || code;
-  const countryLine = countries => countries.map(c => `${flag(c.code)} ${countryName(c.code)} ${pct(c.share)}`).join(" · ");
+  /** Flag, name and share per country, as nodes to spread into a parent. */
+  const countryLine = countries => countries.flatMap((c, i) => [i > 0 ? " · " : "", flag(c.code), ` ${countryName(c.code)} ${pct(c.share)}`]);
   const range = (a, b) => (a === b ? `${a}` : `${a}–${b}`);
 
   function chapters(persona, onRemove) {
@@ -186,7 +187,7 @@
         ...(c.empty ? [el("p", { text: "No streaming history from these years." })] : [
           el("p", {}, [el("b", { text: "Headliners: " }), c.top.join(", ")]),
           c.song ? el("p", {}, [el("b", { text: "Your song: " }), `"${c.song.track}" by ${c.song.artist}`]) : "",
-          c.countries.length ? el("p", {}, [el("b", { text: "Streaming from: " }), countryLine(c.countries)]) : "",
+          c.countries.length ? el("p", {}, [el("b", { text: "Streaming from: " }), ...countryLine(c.countries)]) : "",
           c.genreLabel ? el("span", { class: "genre", style: `color:${genreVar(c.genre)}`, text: c.genreLabel }) : ""
         ])
       ]);
@@ -246,7 +247,7 @@
     if (b.skipRate !== null) note.push(` ${pct(b.skipRate)} skipped.`);
     if (b.age !== null && b.age >= 0) note.push(` You were ${b.age}.`);
     if (b.chapters.length) note.push(" ", el("b", { text: b.chapters.join(" · ") }));
-    if (b.countries.length) note.push(el("br"), "Streaming from ", countryLine(b.countries), ".");
+    if (b.countries.length) note.push(el("br"), "Streaming from ", ...countryLine(b.countries), ".");
     return note;
   }
 

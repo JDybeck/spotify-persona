@@ -80,6 +80,27 @@
     $("status").classList.toggle("error", isError);
   }
 
+  /** Adds the flag and Spotify's own label(s) in the visitor's language next to each English box name. */
+  function localizeSteps() {
+    const { detectCountry, labelsFor, flagOf } = SpotifyPersona.locale;
+    let timeZone = "";
+    try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { /* keep empty */ }
+    const country = detectCountry({ timeZone, languages: navigator.languages || [navigator.language] });
+    const labels = labelsFor(country);
+    for (const slot of document.querySelectorAll(".steps .local")) {
+      const known = labels.filter(l => l[slot.dataset.label]);
+      if (known.length === 0) continue;
+      const parts = [" (", Object.assign(document.createElement("i"), { className: "flag", textContent: flagOf(country) }), " "];
+      known.forEach((l, i) => {
+        if (i > 0) parts.push(" / ");
+        parts.push(Object.assign(document.createElement("b"), { lang: l.lang, textContent: l[slot.dataset.label] }));
+      });
+      parts.push(")");
+      slot.replaceChildren(...parts);
+    }
+  }
+  localizeSteps();
+
   $("userName").value = profile.name;
   $("userName").addEventListener("change", () => {
     profile.name = $("userName").value.trim().slice(0, 40);

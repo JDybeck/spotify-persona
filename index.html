@@ -7,7 +7,7 @@
   <meta name="description" content="Drop in your Spotify data export and find out what your listening history says about you. Runs entirely in your browser.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Archivo:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Archivo:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Color+Emoji&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -37,9 +37,9 @@
     <h2>Get your data</h2>
     <ol class="steps">
       <li>Open <a href="https://www.spotify.com/account/privacy/" target="_blank" rel="noopener">spotify.com/account/privacy</a> and log in. Scroll down to the three data boxes.</li>
-      <li>Tick only the top-right box, <b>Extended streaming history</b> (in Swedish: <b>Utökad streaminghistorik</b>). It covers every year since you joined, with skips and shuffle.</li>
-      <li>Leave <b>Technical log information</b> unticked. This page doesn't use it.</li>
-      <li>Press <b>Request data</b> (<b>Begär data</b>) and confirm the email Spotify sends you.</li>
+      <li>Tick only the top-right box, <b>Extended streaming history</b><span class="local" data-label="extended"></span>. It covers every year since you joined, with skips and shuffle.</li>
+      <li>Leave <b>Technical log information</b><span class="local" data-label="technical"></span> unticked. This page doesn't use it.</li>
+      <li>Press <b>Request data</b><span class="local" data-label="request"></span> and confirm the email Spotify sends you.</li>
       <li>Spotify says it can take up to 30 days, but it is often much faster. When the download email arrives, grab the zip and drop it above. No need to unzip.</li>
     </ol>
   </section>
@@ -222,6 +222,7 @@
   </footer>
 </main>
 
+<script src="src/locale.js"></script>
 <script src="src/genres.js"></script>
 <script src="src/analyze.js"></script>
 <script src="src/explore.js"></script>
