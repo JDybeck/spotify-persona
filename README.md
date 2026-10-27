@@ -1,6 +1,14 @@
 # Spotify Persona
 
-Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you: an archetype, your all-time festival lineup, genre mix, most played and most skipped songs, listening eras, song vibes and a few embarrassing receipts.
+Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you, in five tabs:
+
+- **You:** your archetype, character stats, song vibes and a few embarrassing receipts.
+- **Music:** your festival lineup, genre mix, setlist, skips, search, comebacks and the colors of your album covers.
+- **Time:** eras, the rise and fall of your top artists, Explore, on this day, listening clocks and summer vs winter (plus Christmas creep).
+- **Habits:** your longest session and daily streak, who picks the music (you or the algorithm) and your device history.
+- **Life:** life stages, your own chapters, birthday songs and the first song of every year.
+
+A **year slider** at the top filters the whole page to any span of years, and you can **hide artists** (baby music on your account, say) from every stat.
 
 The **Explore** view digs into any period: the last 4 weeks, 6 or 12 months, any specific year or all time, optionally filtered to one genre. It shows streams, minutes, distinct tracks, artists and albums, top artists and songs, the genre mix and listening clocks by hour of day.
 
@@ -45,6 +53,8 @@ Any static file server works, for example `python -m http.server`.
 | --- | --- |
 | `src/analyze.js` | Normalizes both export formats and aggregates stats in one pass, file by file |
 | `src/genres.js` | Genre definitions and the artist-to-genre dictionary |
+| `src/store.js` | Compact in-memory copy of every stream, so a year range or hidden artist re-aggregates without re-reading the zip |
+| `src/habits.js` | Sessions, streaks, New Year's songs, who picks the music, devices, comebacks, seasons and Christmas |
 | `src/covers.js` | Opt-in album covers for your top albums via Spotify's oEmbed endpoint |
 | `src/locale.js` | Guesses the visitor's country from browser settings and shows Spotify's own data-box labels in its language(s) |
 | `src/search.js` | Accent-insensitive search over artists, songs and albums, plus their detail views |

@@ -14,9 +14,17 @@
   function loadProfile() {
     try {
       const saved = JSON.parse(localStorage.getItem(PROFILE_KEY));
-      if (saved) return { name: saved.name || "", birth: saved.birth || null, chapters: Array.isArray(saved.chapters) ? saved.chapters : [], covers: saved.covers === true };
+      if (saved) {
+        return {
+          name: saved.name || "",
+          birth: saved.birth || null,
+          chapters: Array.isArray(saved.chapters) ? saved.chapters : [],
+          covers: saved.covers === true,
+          hiddenArtists: Array.isArray(saved.hiddenArtists) ? saved.hiddenArtists : []
+        };
+      }
     } catch { /* fall through */ }
-    return { name: "", birth: null, chapters: [], covers: false };
+    return { name: "", birth: null, chapters: [], covers: false, hiddenArtists: [] };
   }
 
   function saveProfile() {
@@ -52,6 +60,7 @@
       profile,
       persona: SpotifyPersona.persona.buildPersona(stats, profile),
       coverCache,
+      onHideArtist: artist => setHidden(artist, true),
       onToggleCovers: () => {
         profile.covers = !profile.covers;
         saveProfile();
@@ -63,7 +72,28 @@
         show();
       }
     });
+    renderHidden();
+    showTab(currentTab, { scroll: false });
   }
+
+  const TABS = ["you", "music", "time", "habits", "life"];
+  let currentTab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "you";
+
+  /** Shows one tab's sections and gives the visible ones rotating accent colours. */
+  function showTab(name, { scroll = true } = {}) {
+    currentTab = TABS.includes(name) ? name : "you";
+    for (const b of document.querySelectorAll("#tabs button")) b.setAttribute("aria-selected", String(b.dataset.tab === currentTab));
+    let accent = 0;
+    for (const section of document.querySelectorAll("#result section[data-tab]")) {
+      const on = section.dataset.tab === currentTab;
+      section.classList.toggle("off-tab", !on);
+      if (on && !section.hidden) section.dataset.accent = String(accent++ % 6 + 1);
+    }
+    try { history.replaceState(null, "", `#${currentTab}`); } catch { /* not allowed in some sandboxes */ }
+    if (scroll) window.scrollTo(0, 0);
+  }
+  for (const b of document.querySelectorAll("#tabs button")) b.addEventListener("click", () => showTab(b.dataset.tab));
+  window.SpotifyPersona.showTab = showTab;
 
   // The worker stays alive after loading: it keeps the parsed history, so a new year range only re-aggregates.
   let years = [];
@@ -98,10 +128,36 @@
     paint();
   }
 
+  let currentRange = {};
+
   function requestRange(fromYear, toYear) {
+    currentRange = { fromYear, toYear };
     $("result").classList.add("updating");
     $("rangeStatus").textContent = "Updating...";
-    worker.postMessage({ type: "range", fromYear, toYear });
+    worker.postMessage({ type: "range", fromYear, toYear, hiddenArtists: profile.hiddenArtists });
+  }
+
+  function setHidden(artist, hide) {
+    const list = profile.hiddenArtists.filter(a => a !== artist);
+    if (hide) list.push(artist);
+    profile.hiddenArtists = list;
+    saveProfile();
+    requestRange(currentRange.fromYear, currentRange.toYear);
+  }
+
+  /** Chips for hidden artists in the sticky bar; clicking one brings the artist back. */
+  function renderHidden() {
+    const box = $("hiddenArtists");
+    box.hidden = profile.hiddenArtists.length === 0;
+    box.replaceChildren(
+      Object.assign(document.createElement("span"), { textContent: "Hidden:" }),
+      ...profile.hiddenArtists.map(artist => {
+        const b = Object.assign(document.createElement("button"), { type: "button", textContent: `${artist} ×`, title: `Show ${artist} again` });
+        b.setAttribute("aria-label", `Show ${artist} again`);
+        b.addEventListener("click", () => setHidden(artist, false));
+        return b;
+      })
+    );
   }
 
   function analyzeFile(file) {
@@ -143,7 +199,7 @@
         }
       }
     };
-    worker.postMessage(file);
+    worker.postMessage({ type: "load", file, hiddenArtists: profile.hiddenArtists });
   }
 
   function setStatus(text, isError = false) {

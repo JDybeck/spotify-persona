@@ -255,13 +255,64 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cover-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--muted); font-size: .85rem; }
 @media (prefers-reduced-motion: reduce) { .cover-row { animation: none; } }
 
-/* Each results section gets its own accent, so the page reads as a set of posters, not one colour. */
+/* Each visible section gets its own accent (set by script in visible order), so a tab reads as a
+   set of posters, not one colour. */
 :root { --c1: #ff7a45; --c2: #4fc3f7; --c3: #ffc145; --c4: #c58cff; --c5: #7ed6a5; --c6: #ff8fc8; }
-#result > section:nth-of-type(6n + 2) { --sunset: var(--c2); }
-#result > section:nth-of-type(6n + 3) { --sunset: var(--c3); }
-#result > section:nth-of-type(6n + 4) { --sunset: var(--c4); }
-#result > section:nth-of-type(6n + 5) { --sunset: var(--c5); }
-#result > section:nth-of-type(6n + 6) { --sunset: var(--c6); }
+#result section[data-accent="2"] { --sunset: var(--c2); }
+#result section[data-accent="3"] { --sunset: var(--c3); }
+#result section[data-accent="4"] { --sunset: var(--c4); }
+#result section[data-accent="5"] { --sunset: var(--c5); }
+#result section[data-accent="6"] { --sunset: var(--c6); }
+
+#result section.off-tab { display: none; }
+.hidden-list { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+.hidden-list button { font: 500 .75rem var(--mono); color: var(--ink); background: var(--stage); border: 1px solid var(--rule); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.hidden-list button:hover { border-color: var(--c6); }
+.hidden-list button:focus-visible { outline: 2px solid var(--c6); outline-offset: 2px; }
+
+/* Tabs live in the sticky bar, under the year slider. On narrow screens they scroll sideways. */
+.tabs { flex: 1 1 100%; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button { font: 800 1.05rem var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: none; border: 0; border-bottom: 3px solid transparent; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--tab-color, var(--c1)); }
+.tabs button:focus-visible { outline: 2px solid var(--c1); outline-offset: -2px; }
+.tabs button:nth-child(2) { --tab-color: var(--c2); }
+.tabs button:nth-child(3) { --tab-color: var(--c3); }
+.tabs button:nth-child(4) { --tab-color: var(--c4); }
+.tabs button:nth-child(5) { --tab-color: var(--c5); }
+
+/* Habits */
+.stack-years { display: grid; gap: 3px; align-items: end; height: 140px; }
+.stack-years .col { display: flex; flex-direction: column-reverse; height: 100%; min-width: 0; border-radius: 2px; overflow: hidden; }
+.stack-years .col i { display: block; }
+.stack-years-axis { display: grid; gap: 3px; font-family: var(--mono); font-size: .66rem; color: var(--muted); text-align: center; }
+.device-history { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.device-history li { display: grid; grid-template-columns: minmax(0, 12em) 1fr auto; gap: 12px; align-items: center; min-width: 0; }
+.device-history b { font-weight: 600; overflow-wrap: anywhere; }
+.device-history .span { position: relative; height: 10px; background: var(--stage); border-radius: 5px; }
+.device-history .span i { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+.device-history small { font-family: var(--mono); font-size: .75rem; color: var(--muted); white-space: nowrap; }
+@media (max-width: 560px) { .device-history li { grid-template-columns: 1fr auto; } .device-history .span { grid-column: 1 / -1; } }
+
+/* Seasons */
+.season-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+.season { background: var(--stage); border-radius: 4px; padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; border-top: 4px solid var(--season); }
+.season h3 { font-size: 1.4rem; font-weight: 900; text-transform: uppercase; color: var(--season); }
+.season ol { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; font-size: .92rem; }
+.season li { overflow-wrap: anywhere; }
+
+/* Cover colours */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+.swatch { display: grid; gap: 6px; min-width: 0; }
+.swatch .chips { display: grid; grid-template-columns: 1fr 1fr; border-radius: 4px; overflow: hidden; aspect-ratio: 2 / 1; }
+.swatch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.swatch small { color: var(--muted); font-size: .75rem; overflow-wrap: anywhere; line-height: 1.3; }
+.swatch code { font-family: var(--mono); font-size: .72rem; color: var(--ink); }
+.year-colors { display: grid; gap: 3px; }
+.year-colors div { display: grid; gap: 4px; min-width: 0; }
+.year-colors i { display: block; height: 64px; border-radius: 3px; }
+.year-colors span { font-family: var(--mono); font-size: .66rem; color: var(--muted); text-align: center; }
 
 /* Life stages */
 .born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

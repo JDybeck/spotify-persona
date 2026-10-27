@@ -38,6 +38,64 @@
       }));
   }
 
+  /** Each year's most-listened album that has a Spotify track ID, for the colour of each year. */
+  function pickYearAlbums(timeline) {
+    const ids = timeline.trackSpotifyIds || [];
+    const byYear = new Map(), trackMs = new Map();
+    for (let i = 0; i < timeline.slot.length; i++) {
+      const t = timeline.track[i], album = timeline.trackAlbum[t];
+      if (album < 0 || !ids[t]) continue;
+      const year = new Date(Math.floor(timeline.slot[i] / 24) * 86400000).getUTCFullYear();
+      if (!byYear.has(year)) byYear.set(year, new Map());
+      const albums = byYear.get(year);
+      albums.set(album, (albums.get(album) || 0) + timeline.ms[i]);
+      trackMs.set(t, (trackMs.get(t) || 0) + timeline.ms[i]);
+    }
+    const bestTrack = new Map();
+    for (const [t, ms] of trackMs) {
+      const album = timeline.trackAlbum[t];
+      const best = bestTrack.get(album);
+      if (best === undefined || ms > trackMs.get(best)) bestTrack.set(album, t);
+    }
+    return [...byYear.entries()].sort((a, b) => a[0] - b[0]).map(([year, albums]) => {
+      const [album] = [...albums.entries()].reduce((a, b) => (b[1] > a[1] ? b : a));
+      return { year, album: timeline.albumNames[album], artist: timeline.artistNames[timeline.albumArtist[album]], trackId: ids[bestTrack.get(album)] };
+    });
+  }
+
+  const MIN_VIVID_SHARE = 0.05;
+
+  /**
+   * The dominant colour of an image from its RGBA pixels. When at least 5% of the cover is vivid
+   * (saturated and not too dark), the strongest vivid colour wins, so a red logo beats a black
+   * background. Otherwise the cover really is black, white or grey, and its average is returned.
+   * Returns [r, g, b], or null for an empty image.
+   */
+  function dominantColor(data) {
+    const buckets = new Map();
+    let pixels = 0, vivid = 0;
+    const sum = [0, 0, 0];
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      pixels++;
+      sum[0] += r; sum[1] += g; sum[2] += b;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      if (saturation < 0.25 || max < 50) continue;
+      vivid++;
+      const weight = saturation * (max / 255);
+      const key = (r >> 5) << 6 | (g >> 5) << 3 | (b >> 5);
+      const bucket = buckets.get(key) || { w: 0, r: 0, g: 0, b: 0 };
+      bucket.w += weight; bucket.r += r * weight; bucket.g += g * weight; bucket.b += b * weight;
+      buckets.set(key, bucket);
+    }
+    if (pixels === 0) return null;
+    if (vivid / pixels < MIN_VIVID_SHARE) return sum.map(v => Math.round(v / pixels));
+    const best = [...buckets.values()].reduce((a, b) => (b.w > a.w ? b : a));
+    return [best.r / best.w, best.g / best.w, best.b / best.w].map(Math.round);
+  }
+
   /** The cover image URL for a track, or null when Spotify has none. */
   async function coverUrl(trackId, fetchFn) {
     const res = await fetchFn(OEMBED + encodeURIComponent(`https://open.spotify.com/track/${trackId}`));
@@ -74,5 +132,5 @@
     return results.sort((a, b) => rank.get(a.trackId) - rank.get(b.trackId));
   }
 
-  return { pickAlbums, coverUrl, loadCovers };
+  return { pickAlbums, pickYearAlbums, dominantColor, coverUrl, loadCovers };
 });

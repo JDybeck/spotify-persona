@@ -346,26 +346,38 @@
   function coverWall(timeline, profile, coverCache, onToggleCovers) {
     const api = SpotifyPersona.covers;
     const albums = api.pickAlbums(timeline);
+    const yearAlbums = api.pickYearAlbums(timeline);
     $("coverToggle").hidden = albums.length === 0;
     $("coversButton").textContent = profile.covers ? "Hide album covers" : "Show my album covers";
     $("coversButton").onclick = onToggleCovers;
+    $("colorsSection").hidden = albums.length === 0;
     if (!profile.covers || albums.length === 0) {
       $("coverWall").hidden = true;
+      $("colorsNote").textContent = "Turn on album covers in the You tab to see the colors of your music.";
+      fill("swatches", []);
+      fill("yearColors", []);
       return;
     }
 
+    // Top albums for the wall, plus each year's #1 album for the colour of each year, looked up together.
     let load = coverLoads.get(timeline);
     if (!load) {
       $("coverNote").textContent = "Fetching covers from Spotify...";
-      load = api.loadCovers(albums, { fetchFn: (...args) => fetch(...args), cache: coverCache });
+      const seen = new Set(albums.map(a => a.trackId));
+      const all = [...albums, ...yearAlbums.filter(a => !seen.has(a.trackId) && seen.add(a.trackId))];
+      load = api.loadCovers(all, { fetchFn: (...args) => fetch(...args), cache: coverCache });
       coverLoads.set(timeline, load);
     }
-    load.then(covers => {
+    load.then(found => {
       coverCache.save();
+      const urlById = new Map(found.map(c => [c.trackId, c.url]));
+      const covers = albums.filter(a => urlById.has(a.trackId)).map(a => ({ ...a, url: urlById.get(a.trackId) }));
+      const yearCovers = yearAlbums.filter(a => urlById.has(a.trackId)).map(a => ({ ...a, url: urlById.get(a.trackId) }));
       $("coverNote").textContent = covers.length
         ? `Covers of your ${covers.length} most played albums, from Spotify. Everything else stays in your browser.`
         : "Spotify didn't return any covers. Try again later.";
       if (!profile.covers || covers.length === 0) return;
+      colorsSection(covers, yearCovers);
       // One row looks thin with few covers, so split into two rows only when there are enough.
       const rows = covers.length >= 12
         ? [coverRow(covers.filter((_, i) => i % 2 === 0), false), coverRow(covers.filter((_, i) => i % 2 === 1), true)]
@@ -533,6 +545,12 @@
       const byId = timeline.artistNames.indexOf(d.by);
       header.push(pickButton(`More from ${d.by}`, null, () => openDetail(timeline, "artist", byId)));
     }
+    if (kind === "artist") {
+      header.push(pickButton(`Hide ${d.name} from my stats`, "Leaves them out everywhere, like baby music on your account. Undo from the bar at the top.", () => {
+        $("searchDetail").hidden = true;
+        onHideArtist(d.name);
+      }));
+    }
     fill("searchDetail", [
       el("div", { class: "detail-head" }, header),
       el("div", { class: "tiles" }, tiles.map(([value, text]) => el("div", { class: "tile" }, [el("b", { class: "num", text: value }), el("span", { text })]))),
@@ -545,7 +563,10 @@
       ]),
       lists.length ? el("div", { class: "year-cols" }, lists) : ""
     ]);
-    if (scroll) $("searchSection").scrollIntoView({ block: "start", behavior: "smooth" });
+    if (scroll) {
+      SpotifyPersona.showTab($("searchSection").dataset.tab, { scroll: false });
+      $("searchSection").scrollIntoView({ block: "start", behavior: "smooth" });
+    }
     else panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
@@ -568,6 +589,174 @@
     run();
   }
 
+  const tile = ([value, text]) => el("div", { class: "tile" }, [el("b", { class: "num", text: value }), el("span", { text })]);
+  const yearSpan = (from, to) => (from === to ? `${from}` : `${from}–${to}`);
+
+  function sessionsSection(h) {
+    $("sessionsSection").hidden = !h || !h.sessions;
+    if (!h || !h.sessions) return;
+    const { sessions: s, streaks: st } = h;
+    fill("sessionTiles", [
+      [`${s.longest.hours.toFixed(1)} h`, "longest session"],
+      [`${fmt(st.longest.days)} days`, "longest daily streak"],
+      [`${fmt(st.latest.days)} ${st.latest.days === 1 ? "day" : "days"}`, "latest streak"],
+      [fmt(st.activeDays), "days with music"],
+      [fmt(s.longSessions), "sessions over 3 hours"],
+      [duration(s.medianMinutes / 60), "a typical session"]
+    ].map(tile));
+    fill("sessionDetail", [
+      el("li", {}, [
+        el("span", { class: "when num", text: `${prettyDate(s.longest.date)} · from ${s.longest.startTime} · ${fmt(s.longest.streams)} songs` }),
+        el("b", { text: "Your longest session" }),
+        el("small", { text: `On repeat: ${s.longest.topTracks.map(t => `"${t.track}" (${t.plays}×)`).join(", ")}. A session ends after 10 minutes of silence.` })
+      ]),
+      el("li", {}, [
+        el("span", { class: "when num", text: `${prettyDate(st.longest.from)} to ${prettyDate(st.longest.to)}` }),
+        el("b", { text: `${fmt(st.longest.days)} days in a row` }),
+        el("small", { text: "Your longest run of days with at least one song." })
+      ])
+    ]);
+  }
+
+  /** Stacked yearly columns: one segment per key, each a share of that year. */
+  function stackedYears(id, rows, keys, colors) {
+    const columns = `repeat(${rows.length}, minmax(0, 1fr))`;
+    const chart = $(id);
+    chart.style.gridTemplateColumns = columns;
+    fill(id, rows.map(r => el("div", { class: "col", title: `${r.year}: ${keys.map(k => `${pct(r[k] || 0)}`).join(" / ")}` },
+      keys.map(k => el("i", { style: `height:${(r[k] || 0) * 100}%;background:${colors[k]}` })))));
+    let axis = chart.nextElementSibling;
+    if (!axis || !axis.classList.contains("stack-years-axis")) {
+      axis = el("div", { class: "stack-years-axis" });
+      chart.after(axis);
+    }
+    axis.style.gridTemplateColumns = columns;
+    axis.replaceChildren(...rows.map((r, i) => el("span", { text: rows.length > 10 && i % 2 ? "" : `'${String(r.year).slice(2)}` })));
+  }
+
+  const REASON_COLORS = { chose: "var(--c1)", flowed: "var(--c2)", skipped: "var(--c6)" };
+
+  function algorithmSection(h) {
+    const a = h && h.algorithm;
+    $("algorithmSection").hidden = !a;
+    if (!a) return;
+    const share = k => a.shares.find(s => s.key === k).share;
+    $("algorithmNote").textContent = `You picked ${pct(share("chose"))} of your songs yourself. ${pct(share("flowed"))} just kept playing from a queue, album, playlist or autoplay, and ${pct(share("skipped"))} you reached by skipping. Columns show each year.`;
+    fill("algorithmBar", a.shares.map(s => el("i", { style: `width:${s.share * 100}%;background:${REASON_COLORS[s.key]}`, title: `${s.label} ${pct(s.share)}` })));
+    fill("algorithmLegend", a.shares.map(s => el("div", {}, [
+      el("span", { class: "sw", style: `background:${REASON_COLORS[s.key]}` }), el("span", { text: s.label }), el("span", { class: "num", text: pct(s.share) })
+    ])));
+    stackedYears("algorithmYears", a.byYear, ["chose", "flowed", "skipped"], REASON_COLORS);
+  }
+
+  const DEVICE_COLORS = { android: "var(--c5)", iphone: "var(--c2)", windows: "var(--c3)", mac: "var(--c4)", linux: "var(--c1)", web: "var(--c6)", living: "var(--g-rock)", other: "var(--g-other)" };
+
+  function devicesSection(h, stats) {
+    const d = h && h.devices;
+    $("devicesSection").hidden = !d;
+    if (!d) return;
+    fill("deviceBar", d.shares.map(s => el("i", { style: `width:${s.share * 100}%;background:${DEVICE_COLORS[s.key]}`, title: `${s.label} ${pct(s.share)}` })));
+    fill("deviceLegend", d.shares.filter(s => s.share >= 0.01).map(s => el("div", {}, [
+      el("span", { class: "sw", style: `background:${DEVICE_COLORS[s.key]}` }), el("span", { text: s.label }), el("span", { class: "num", text: pct(s.share) })
+    ])));
+    const first = stats.years[0].year, span = stats.years[stats.years.length - 1].year - first + 1;
+    fill("deviceHistory", d.history.slice(0, 12).map(x => el("li", {}, [
+      el("b", { text: x.name }),
+      el("div", { class: "span" }, el("i", { style: `left:${(x.first - first) / span * 100}%;width:${(x.last - x.first + 1) / span * 100}%;background:${DEVICE_COLORS[x.category]}` })),
+      el("small", { class: "num", text: `${yearSpan(x.first, x.last)} · ${duration(x.hours)}` })
+    ])));
+  }
+
+  function comebacksSection(h) {
+    const list = (h && h.comebacks) || [];
+    $("comebacksSection").hidden = list.length === 0;
+    fill("comebacks", list.map(c => el("li", {}, [
+      el("span", { class: "when num", text: `Back in ${c.backYear} after ${c.silentYears} silent years` }),
+      el("b", { text: `"${c.track}"` }),
+      el("small", { text: `${c.artist} · ${fmt(c.playsBefore)} plays until ${c.lastYear}, ${fmt(c.playsAfter)} since` })
+    ])));
+  }
+
+  const SEASON_STYLE = { winter: ["Winter", "var(--c2)"], spring: ["Spring", "var(--c5)"], summer: ["Summer", "var(--c3)"], autumn: ["Autumn", "var(--c1)"] };
+
+  function seasonsSection(h) {
+    const s = h && h.seasons;
+    $("seasonsSection").hidden = !s;
+    if (!s) return;
+    fill("seasonGrid", Object.entries(SEASON_STYLE).map(([key, [label, color]]) => el("div", { class: "season", style: `--season:${color}` }, [
+      el("h3", { text: label }),
+      el("ol", {}, s.top[key].map(a => el("li", { text: a.name })))
+    ])));
+    $("seasonalNote").textContent = s.seasonal.length
+      ? `Most seasonal: ${s.seasonal.slice(0, 4).map(a => `${a.name} (${pct(a.share)} ${a.season})`).join(", ")}.`
+      : "Your taste barely changes with the seasons.";
+
+    const c = h.christmas;
+    $("christmasBlock").hidden = !c;
+    if (!c) return;
+    const starts = c.byYear.map(y => y.first).filter(Boolean).sort();
+    const typical = starts.length ? starts[Math.floor(starts.length / 2)] : null;
+    const typicalText = typical ? ` Your Christmas season usually starts around ${Number(typical.slice(3))} ${MONTHS[Number(typical.slice(0, 2)) - 1]}.` : "";
+    const topText = c.topSongs.length ? ` Favourite: "${c.topSongs[0].track}" by ${c.topSongs[0].artist}.` : "";
+    $("christmasNote").textContent = `${fmt(c.total)} plays of Christmas songs.${typicalText}${topText}`;
+    fill("christmasYears", [...c.byYear].reverse().map(y => el("li", {}, [
+      el("span", { class: "when num", text: `${y.year} · ${fmt(y.plays)} ${y.plays === 1 ? "play" : "plays"}` }),
+      el("b", { text: y.first ? `First on ${Number(y.first.slice(3))} ${MONTHS[Number(y.first.slice(0, 2)) - 1]}` : "Only out of season" }),
+      y.outOfSeason ? el("small", { text: `${y.outOfSeason} before September. Bold.` }) : ""
+    ])));
+  }
+
+  function newYearSection(h) {
+    const list = (h && h.newYear) || [];
+    $("newYearSection").hidden = list.length === 0;
+    fill("newYear", [...list].reverse().map(n => el("li", {}, [
+      el("span", { class: "when num", text: `${prettyDate(n.date)} · ${n.time}` }),
+      el("b", { text: `"${n.track}"` }),
+      el("small", { text: n.artist })
+    ])));
+  }
+
+  // Dominant colours per image URL, so re-renders do not sample the same cover again.
+  const colorCache = new Map();
+  const hex = rgb => `#${rgb.map(v => v.toString(16).padStart(2, "0")).join("")}`;
+
+  function sampleColor(url) {
+    if (!colorCache.has(url)) {
+      colorCache.set(url, new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.referrerPolicy = "no-referrer";
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 32;
+            const ctx = canvas.getContext("2d", { willReadFrequently: true });
+            ctx.drawImage(img, 0, 0, 32, 32);
+            resolve(SpotifyPersona.covers.dominantColor(ctx.getImageData(0, 0, 32, 32).data));
+          } catch { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      }));
+    }
+    return colorCache.get(url);
+  }
+
+  async function colorsSection(topCovers, yearCovers) {
+    const withColor = async list => (await Promise.all(list.map(async c => ({ ...c, rgb: await sampleColor(c.url) })))).filter(c => c.rgb);
+    const [top, byYear] = await Promise.all([withColor(topCovers.slice(0, 12)), withColor(yearCovers)]);
+    $("colorsNote").textContent = "The strongest color on each of your most played covers.";
+    fill("swatches", top.map(c => el("div", { class: "swatch", title: `${c.album} · ${c.artist}` }, [
+      el("div", { class: "chips" }, [el("img", { src: c.url, alt: "", referrerpolicy: "no-referrer" }), el("i", { style: `background:${hex(c.rgb)}` })]),
+      el("small", {}, [el("code", { text: hex(c.rgb) }), el("br"), c.album])
+    ])));
+    $("yearColors").style.gridTemplateColumns = `repeat(${byYear.length}, minmax(0, 1fr))`;
+    fill("yearColors", byYear.map((c, i) => el("div", { title: `${c.year}: ${c.album} · ${c.artist}` }, [
+      el("i", { style: `background:${hex(c.rgb)}` }),
+      el("span", { text: byYear.length > 10 && i % 2 ? "" : `'${String(c.year).slice(2)}` })
+    ])));
+  }
+
   function clock(stats) {
     const max = Math.max(...stats.hours);
     const peak = stats.hours.indexOf(max);
@@ -586,7 +775,11 @@
     ])));
   }
 
-  function render({ stats, persona, timeline, profile, coverCache, onRemoveChapter = () => {}, onToggleCovers = () => {} }) {
+  // Set on every render, so detail views opened later call the current handler.
+  let onHideArtist = () => {};
+
+  function render({ stats, persona, timeline, profile, coverCache, onRemoveChapter = () => {}, onToggleCovers = () => {}, onHideArtist: hideHandler = () => {} }) {
+    onHideArtist = hideHandler;
     greeting(profile);
     hero(stats, persona);
     coverWall(timeline, profile, coverCache, onToggleCovers);
@@ -606,6 +799,12 @@
     chapters(persona, onRemoveChapter);
     clock(stats);
     receipts(persona);
+    sessionsSection(stats.habits);
+    algorithmSection(stats.habits);
+    devicesSection(stats.habits, stats);
+    comebacksSection(stats.habits);
+    seasonsSection(stats.habits);
+    newYearSection(stats.habits);
     $("foot").textContent = `Built from your Spotify streaming history, ${stats.first} to ${stats.last}. Hours are total time played, including skips. A play counts streams of 30 seconds or more. Times are in your browser's time zone. Nothing left this browser.`;
   }
 

@@ -52,10 +52,15 @@
       return true;
     }
 
-    /** Calls fn with a normalized record for every stream whose local year is within [fromYear, toYear]. */
-    function each({ fromYear = -Infinity, toYear = Infinity } = {}, fn) {
+    /**
+     * Calls fn with a normalized record for every stream whose local year is within [fromYear, toYear],
+     * leaving out music by any artist in hiddenArtists.
+     */
+    function each({ fromYear = -Infinity, toYear = Infinity, hiddenArtists = [] } = {}, fn) {
+      const hidden = new Set(hiddenArtists);
       for (let i = 0; i < time.length; i++) {
         if (year[i] < fromYear || year[i] > toYear) continue;
+        if (hidden.size && kind[i] === MUSIC && hidden.has(trackInfo[ref[i]].artist)) continue;
         const f = flags[i], hasBehavior = (f & HAS_BEHAVIOR) !== 0;
         const base = {
           date: new Date(time[i]),

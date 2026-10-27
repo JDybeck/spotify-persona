@@ -3,18 +3,21 @@
 importScripts(
   "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
   "analyze.js",
-  "store.js"
+  "store.js",
+  "habits.js"
 );
 
-const { analyze, store: storeApi } = self.SpotifyPersona;
+const { analyze, store: storeApi, habits: habitsApi } = self.SpotifyPersona;
 const TIMELINE_BUFFERS = ["trackArtist", "trackAlbum", "albumArtist", "slot", "track", "streams", "plays", "ms"];
 let store = null;
 
 function aggregate(range) {
   const aggregator = analyze.createAggregator();
-  store.each(range, r => aggregator.addNormalized(r));
+  const habits = habitsApi.createHabitsBuilder();
+  store.each(range, r => { aggregator.addNormalized(r); habits.add(r); });
   const stats = aggregator.finish();
-  if (!stats) throw new Error("No music was played in these years.");
+  if (!stats) throw new Error("No music left in these years. Try a wider range or unhide an artist.");
+  stats.habits = habits.finish();
   const timeline = aggregator.timeline();
   self.postMessage({ type: "done", stats, timeline, years: store.years(), range }, TIMELINE_BUFFERS.map(k => timeline[k].buffer));
 }
@@ -34,13 +37,19 @@ async function load(file) {
     self.postMessage({ type: "progress", done: i + 1, total: entries.length });
   }
   if (store.years().length === 0) throw new Error("The history files contain no music streams.");
-  aggregate({});
+  aggregate({ hiddenArtists });
 }
+
+// Artists the user chose to hide (baby music, a sibling's account...), applied to every aggregation.
+let hiddenArtists = [];
 
 self.onmessage = async ({ data }) => {
   try {
-    if (data instanceof Blob) await load(data);
-    else if (data && data.type === "range" && store) aggregate({ fromYear: data.fromYear, toYear: data.toYear });
+    if (data && data.type === "load") { hiddenArtists = data.hiddenArtists || []; await load(data.file); }
+    else if (data && data.type === "range" && store) {
+      hiddenArtists = data.hiddenArtists || [];
+      aggregate({ fromYear: data.fromYear, toYear: data.toYear, hiddenArtists });
+    }
   } catch (err) {
     self.postMessage({ type: "error", message: err.message || String(err) });
   }

@@ -54,9 +54,17 @@
     </div>
     <button type="button" class="again" id="rangeAll" hidden>All time</button>
     <span class="range-status" id="rangeStatus" role="status" aria-live="polite"></span>
+    <div class="hidden-list" id="hiddenArtists" hidden></div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" data-tab="you">You</button>
+      <button type="button" role="tab" data-tab="music">Music</button>
+      <button type="button" role="tab" data-tab="time">Time</button>
+      <button type="button" role="tab" data-tab="habits">Habits</button>
+      <button type="button" role="tab" data-tab="life">Life</button>
+    </nav>
   </div>
 
-  <section class="hero">
+  <section data-tab="you" class="hero">
     <div class="eyebrow" id="greeting">Your Spotify personality</div>
     <h1 id="title"></h1>
     <div class="tour" id="tour"></div>
@@ -68,19 +76,19 @@
     </div>
   </section>
 
-  <section>
+  <section data-tab="you">
     <div class="eyebrow">Character sheet</div>
     <h2>Your stats</h2>
     <div class="traits" id="traits"></div>
   </section>
 
-  <section>
+  <section data-tab="music">
     <div class="eyebrow">All-time lineup, sized by hours played</div>
     <h2>Your festival</h2>
     <div class="poster" id="poster"></div>
   </section>
 
-  <section id="genres">
+  <section data-tab="music" id="genres">
     <div class="eyebrow">Genre DNA</div>
     <h2>What you're made of</h2>
     <div class="dna" id="dna" role="img" aria-label="Genre share bar"></div>
@@ -88,13 +96,13 @@
     <p class="lede" id="dnaNote"></p>
   </section>
 
-  <section>
+  <section data-tab="music">
     <div class="eyebrow">Most played, all time</div>
     <h2>The setlist</h2>
     <ol class="setlist" id="setlist"></ol>
   </section>
 
-  <section id="vibesSection">
+  <section data-tab="you" id="vibesSection">
     <div class="eyebrow">Read from how you listen, not the audio</div>
     <h2>Song vibes</h2>
     <div>
@@ -104,7 +112,7 @@
     <div class="vibes" id="vibes"></div>
   </section>
 
-  <section id="skips">
+  <section data-tab="music" id="skips">
     <div class="eyebrow">Next track, please</div>
     <h2>The skip button</h2>
     <p class="lede" id="skipNote"></p>
@@ -120,7 +128,7 @@
     </div>
   </section>
 
-  <section>
+  <section data-tab="time">
     <div class="eyebrow">Hours per year</div>
     <h2>The tour so far</h2>
     <div>
@@ -130,7 +138,7 @@
     <div class="eras" id="eras"></div>
   </section>
 
-  <section id="discovery">
+  <section data-tab="time" id="discovery">
     <div class="eyebrow">Rise and fall</div>
     <h2>Who ruled each year</h2>
     <p class="lede">Yearly rank of every artist that made a yearly top 3. Hover or tap a name to follow one line.</p>
@@ -141,7 +149,7 @@
     <ol class="moments" id="discoveries"></ol>
   </section>
 
-  <section id="explore">
+  <section data-tab="time" id="explore">
     <div class="eyebrow">Explore</div>
     <h2>Dig into any period</h2>
     <div class="year-chips" id="rangeChips" role="tablist" aria-label="Time range"></div>
@@ -152,7 +160,7 @@
     <div class="year-detail" id="exploreDetail" role="tabpanel"></div>
   </section>
 
-  <section id="searchSection">
+  <section data-tab="music" id="searchSection">
     <div class="eyebrow">Search</div>
     <h2>Look anything up</h2>
     <div class="born">
@@ -163,7 +171,7 @@
     <div class="year-detail" id="searchDetail" hidden></div>
   </section>
 
-  <section id="onThisDay">
+  <section data-tab="time" id="onThisDay">
     <div class="eyebrow">On this day</div>
     <h2 id="otdTitle">On this day</h2>
     <div class="born">
@@ -173,7 +181,7 @@
     <ol class="moments" id="otdList"></ol>
   </section>
 
-  <section id="life">
+  <section data-tab="life" id="life">
     <div class="eyebrow">Soundtrack of your life</div>
     <h2>The times of your life</h2>
     <form class="born" id="bornForm">
@@ -215,7 +223,7 @@
     <div class="stages" id="chapters"></div>
   </section>
 
-  <section>
+  <section data-tab="time">
     <div class="eyebrow">Hour of day</div>
     <h2>When the music plays</h2>
     <div>
@@ -225,10 +233,68 @@
     <p class="lede" id="clockNote"></p>
   </section>
 
-  <section>
+  <section data-tab="you">
     <div class="eyebrow">Evidence</div>
     <h2>The receipts</h2>
     <div class="receipts" id="receipts"></div>
+  </section>
+
+  <section data-tab="habits" id="sessionsSection">
+    <div class="eyebrow">Marathons and streaks</div>
+    <h2>How long you go</h2>
+    <div class="tiles" id="sessionTiles"></div>
+    <div class="moments" id="sessionDetail"></div>
+  </section>
+
+  <section data-tab="habits" id="algorithmSection">
+    <div class="eyebrow">You vs the algorithm</div>
+    <h2>Who picks the music</h2>
+    <p class="lede" id="algorithmNote"></p>
+    <div class="dna" id="algorithmBar" role="img" aria-label="Who started each song"></div>
+    <div class="legend" id="algorithmLegend"></div>
+    <div class="stack-years" id="algorithmYears" role="img" aria-label="Who started songs, per year"></div>
+  </section>
+
+  <section data-tab="habits" id="devicesSection">
+    <div class="eyebrow">Your gear</div>
+    <h2>Device history</h2>
+    <div class="dna" id="deviceBar" role="img" aria-label="Listening per device type"></div>
+    <div class="legend" id="deviceLegend"></div>
+    <ol class="device-history" id="deviceHistory"></ol>
+  </section>
+
+  <section data-tab="music" id="comebacksSection">
+    <div class="eyebrow">Welcome back</div>
+    <h2>Comebacks</h2>
+    <p class="lede">Songs that went silent for three years or more, then came back.</p>
+    <ol class="moments" id="comebacks"></ol>
+  </section>
+
+  <section data-tab="music" id="colorsSection">
+    <div class="eyebrow">Cover colors</div>
+    <h2>Your palette</h2>
+    <p class="lede" id="colorsNote"></p>
+    <div class="swatches" id="swatches"></div>
+    <h3 class="subhead">The color of each year</h3>
+    <div class="year-colors" id="yearColors"></div>
+  </section>
+
+  <section data-tab="time" id="seasonsSection">
+    <div class="eyebrow">Seasons</div>
+    <h2>Summer you vs winter you</h2>
+    <div class="season-grid" id="seasonGrid"></div>
+    <p class="lede" id="seasonalNote"></p>
+    <div id="christmasBlock" hidden>
+      <h3 class="subhead">Christmas creep</h3>
+      <p class="lede" id="christmasNote"></p>
+      <ol class="moments" id="christmasYears"></ol>
+    </div>
+  </section>
+
+  <section data-tab="life" id="newYearSection">
+    <div class="eyebrow">Happy New Year</div>
+    <h2>Your first song of every year</h2>
+    <ol class="moments" id="newYear"></ol>
   </section>
 
   <footer>
