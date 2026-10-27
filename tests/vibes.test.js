@@ -64,6 +64,14 @@ test("songs qualify for vibes from how they were played", () => {
   assert.equal(tags[keyOf("Old Friend", "Unknown Band")], undefined, "comfort songs get no per-song tag");
 });
 
+test("a vibe's playlist holds every match, while the card shows five", () => {
+  const night = Array.from({ length: 8 }, (_, i) => profile({ track: `Night ${i}`, night: 20 + i, plays: 30 }));
+  const v = songVibes(stats(night)).vibes.find(x => x.key === "night");
+  assert.equal(v.songs.length, 5);
+  assert.equal(v.playlist.length, 8);
+  assert.deepEqual(v.playlist[0], { track: "Night 7", artist: "Unknown Band" }, "strongest match first");
+});
+
 test("skip bait needs skip data and empty vibes are dropped", () => {
   const { vibes } = songVibes(stats([profile({ starts: 60, skips: 45 })], { hasBehaviorData: false }));
   assert.deepEqual(vibes, []);

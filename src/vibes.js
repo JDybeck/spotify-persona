@@ -22,6 +22,7 @@
   }
 
   const SONGS_PER_VIBE = 5;
+  const PLAYLIST_SIZE = 50;
 
   // Each vibe decides whether a song profile qualifies and how strongly, so the strongest examples are shown.
   const VIBES = [
@@ -99,11 +100,13 @@
     const vibes = VIBES.map(v => {
       const matches = profiles.filter(p => v.test(p, ctx));
       if (v.tag) for (const p of matches) (tags[keyOf(p.track, p.artist)] = tags[keyOf(p.track, p.artist)] || []).push(v.tag);
-      const songs = matches
-        .sort((a, b) => v.score(b) - v.score(a))
+      const ranked = matches.sort((a, b) => v.score(b) - v.score(a));
+      const songs = ranked
         .slice(0, SONGS_PER_VIBE)
         .map(p => ({ track: p.track, artist: p.artist, detail: v.detail(p), energy: energyOf(p.artist) }));
-      return { key: v.key, name: v.name, blurb: v.blurb, songs };
+      // The card shows the top five; a copied playlist gets every match, up to a playlist-sized cap.
+      const playlist = ranked.slice(0, PLAYLIST_SIZE).map(p => ({ track: p.track, artist: p.artist }));
+      return { key: v.key, name: v.name, blurb: v.blurb, songs, playlist };
     }).filter(v => v.songs.length > 0);
 
     return { energy, vibes, tags };

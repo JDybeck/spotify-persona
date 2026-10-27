@@ -58,7 +58,7 @@
    * Like Spotify's own stats, streams and distinct counts only include plays of 30 seconds or more,
    * while minutes and hours include all time played.
    */
-  function query(timeline, range, genre = null) {
+  function query(timeline, range, genre = null, songCount = TOP) {
     const genres = artistGenres(timeline);
     const { slot, track, streams, plays, ms, trackArtist, trackAlbum } = timeline;
     const trackCount = timeline.trackNames.length, artistCount = timeline.artistNames.length;
@@ -105,7 +105,7 @@
       artists,
       albums: hasAlbums ? albumSeen.size : null,
       topArtists: topIndices(artistMs, TOP).map(a => ({ name: timeline.artistNames[a], hours: artistMs[a] / HOUR_MS, plays: artistPlays[a] })),
-      topTracks: topIndices(trackPlays, TOP).map(t => ({
+      topTracks: topIndices(trackPlays, songCount).map(t => ({
         track: timeline.trackNames[t], artist: timeline.artistNames[trackArtist[t]], plays: trackPlays[t], hours: trackMs[t] / HOUR_MS
       })),
       clock: { streams: clockStreams, minutes: clockMs.map(v => v / MINUTE_MS) },

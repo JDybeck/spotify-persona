@@ -314,6 +314,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .year-colors i { display: block; height: 64px; border-radius: 3px; }
 .year-colors span { font-family: var(--mono); font-size: .66rem; color: var(--muted); text-align: center; }
 
+/* Copy as playlist */
+.copy-pl { justify-self: start; align-self: start; font: 500 .72rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--sunset); background: none; border: 1px solid currentColor; border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.copy-pl:hover { background: color-mix(in srgb, var(--sunset) 15%, transparent); }
+.copy-pl:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 20; width: min(560px, calc(100% - 32px)); background: var(--ink); color: var(--night); border-radius: 6px; padding: 12px 16px; font-size: .92rem; box-shadow: 0 8px 30px rgb(0 0 0 / .4); }
+.copy-fallback { position: fixed; inset: auto 16px calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 21; max-width: 640px; margin: 0 auto; background: var(--stage); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; display: grid; gap: 10px; box-shadow: 0 8px 30px rgb(0 0 0 / .5); }
+.copy-fallback p { margin: 0; font-size: .9rem; }
+.copy-fallback textarea { width: 100%; height: 140px; font: .75rem var(--mono); color: var(--ink); background: var(--night); border: 1px solid var(--rule); border-radius: 4px; padding: 8px; resize: vertical; }
+
 /* Life stages */
 .born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .born label { font-family: var(--mono); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

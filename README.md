@@ -10,6 +10,8 @@ Drop in your Spotify data export and get a gig-poster breakdown of what your lis
 
 A **year slider** at the top filters the whole page to any span of years, and you can **hide artists** (baby music on your account, say) from every stat.
 
+**Copy as playlist** buttons sit on every list worth listening to: your top 50, each vibe, eras, life stages, chapters, seasons, Christmas, comebacks, New Year's songs, birthdays and any Explore range. They copy Spotify song links; in the Spotify desktop app, make a new playlist, click inside it and paste. No login needed, since the links come from the track IDs in your own export.
+
 The **Explore** view digs into any period: the last 4 weeks, 6 or 12 months, any specific year or all time, optionally filtered to one genre. It shows streams, minutes, distinct tracks, artists and albums, top artists and songs, the genre mix and listening clocks by hour of day.
 
 **Search** finds any artist, song or album you have played and shows its plays, hours, all-time rank, first and latest play, biggest day, plays per year and top songs or albums.
@@ -55,6 +57,7 @@ Any static file server works, for example `python -m http.server`.
 | `src/genres.js` | Genre definitions and the artist-to-genre dictionary |
 | `src/store.js` | Compact in-memory copy of every stream, so a year range or hidden artist re-aggregates without re-reading the zip |
 | `src/habits.js` | Sessions, streaks, New Year's songs, who picks the music, devices, comebacks, seasons and Christmas |
+| `src/playlist.js` | Spotify links for any list of songs, and the top songs of any slice of years, months, genre or name |
 | `src/covers.js` | Opt-in album covers for your top albums via Spotify's oEmbed endpoint |
 | `src/locale.js` | Guesses the visitor's country from browser settings and shows Spotify's own data-box labels in its language(s) |
 | `src/search.js` | Accent-insensitive search over artists, songs and albums, plus their detail views |

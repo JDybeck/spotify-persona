@@ -82,7 +82,12 @@
       ]),
       el("span", { class: "plays num", text: `${fmt(t.plays)} plays` })
     ])));
+    fill("setlistCopy", [copyButton(() => stats.topTracks, `Copy top ${stats.topTracks.length} as playlist`)]);
   }
+
+  const SEASON_MONTHS = { winter: [12, 1, 2], spring: [3, 4, 5], summer: [6, 7, 8], autumn: [9, 10, 11] };
+  /** Copy button for the most played songs in a slice of the history (years, months, genre or name pattern). */
+  const sliceButton = filter => copyButton(() => SpotifyPersona.playlist.topSongs(currentTimeline, filter));
 
   function vibes(persona) {
     const { energy, vibes: list } = persona.vibes;
@@ -100,7 +105,8 @@
       el("ol", {}, v.songs.map(s => el("li", {}, [
         el("span", { class: "dot", style: `background:${energyVar(s.energy)}` }),
         el("span", {}, [el("b", { text: s.track }), el("small", { text: `${s.artist} · ${s.detail}` })])
-      ])))
+      ]))),
+      copyButton(() => v.playlist, `Copy ${v.playlist.length} as playlist`)
     ])));
   }
 
@@ -138,7 +144,8 @@
     fill("eras", persona.eras.map(e => el("div", { class: "era", style: `border-color:${genreVar(e.genre)}` }, [
       el("span", { class: "when", text: e.from === e.to ? `${e.from}` : `${e.from}–${e.to}` }),
       el("h3", { text: e.name }),
-      el("p", { text: e.text })
+      el("p", { text: e.text }),
+      sliceButton({ years: [e.from, e.to] })
     ])));
   }
 
@@ -159,7 +166,8 @@
       el("h3", { text: s.name }),
       el("p", {}, [el("b", { text: "Headliners: " }), s.top.join(", ")]),
       s.song ? el("p", {}, [el("b", { text: "Your song: " }), `"${s.song.track}" by ${s.song.artist}`]) : "",
-      s.genreLabel ? el("span", { class: "genre", style: `color:${genreVar(s.genre)}`, text: s.genreLabel }) : ""
+      s.genreLabel ? el("span", { class: "genre", style: `color:${genreVar(s.genre)}`, text: s.genreLabel }) : "",
+      sliceButton({ years: [s.from, s.to] })
     ])));
   }
 
@@ -187,6 +195,7 @@
         ...(c.empty ? [el("p", { text: "No streaming history from these years." })] : [
           el("p", {}, [el("b", { text: "Headliners: " }), c.top.join(", ")]),
           c.song ? el("p", {}, [el("b", { text: "Your song: " }), `"${c.song.track}" by ${c.song.artist}`]) : "",
+          sliceButton({ years: [c.from, c.to] }),
           c.countries.length ? el("p", {}, [el("b", { text: "Streaming from: " }), ...countryLine(c.countries)]) : "",
           c.genreLabel ? el("span", { class: "genre", style: `color:${genreVar(c.genre)}`, text: c.genreLabel }) : ""
         ])
@@ -268,6 +277,7 @@
     return [
       head,
       el("div", { class: "tiles" }, tiles.map(([value, label]) => el("div", { class: "tile" }, [el("b", { class: "num", text: value }), el("span", { text: label })]))),
+      copyButton(() => SpotifyPersona.explore.query(currentTimeline, range, exploreState.genre || null, 50).topTracks, `Copy top 50 of ${range.label.toLowerCase()} as playlist`),
       el("div", { class: "year-cols" }, [
         el("div", {}, [el("h3", { text: "Top artists" }), el("ol", { class: "ranked" }, result.topArtists.map(a => el("li", {}, [
           el("span", { text: a.name }),
@@ -328,6 +338,51 @@
     return `${d} ${MONTHS[m - 1].slice(0, 3)} ${y}`;
   };
   const songLine = t => [el("b", { text: `"${t.track}"` }), el("small", { text: `${t.artist} · ${fmt(t.plays)} ${t.plays === 1 ? "play" : "plays"}` })];
+
+  // The timeline of the current render, for buttons that build playlists later on click.
+  let currentTimeline = null;
+  let toastTimer = null;
+
+  function toast(text) {
+    const t = $("toast");
+    t.textContent = text;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 7000);
+  }
+
+  function showCopyFallback(text) {
+    $("copyFallbackText").value = text;
+    $("copyFallback").hidden = false;
+    $("copyFallbackText").focus();
+    $("copyFallbackText").select();
+    $("copyFallbackClose").onclick = () => { $("copyFallback").hidden = true; };
+  }
+
+  /**
+   * A "Copy as playlist" button. getSongs runs on click and returns { track, artist } items; their Spotify
+   * links go to the clipboard, ready to paste into a playlist in the Spotify app. Returns "" when the
+   * export has no track IDs (the basic account-data export), so callers can always include it.
+   */
+  function copyButton(getSongs, label = "Copy as playlist") {
+    if (!currentTimeline || !SpotifyPersona.playlist.available(currentTimeline)) return "";
+    const timeline = currentTimeline;
+    const b = el("button", { type: "button", class: "copy-pl", text: label });
+    b.addEventListener("click", () => {
+      const links = SpotifyPersona.playlist.linksFor(timeline, getSongs());
+      if (links.length === 0) {
+        toast("None of these songs have Spotify links in your export.");
+        return;
+      }
+      const text = links.join("\n");
+      const paste = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "Cmd+V" : "Ctrl+V";
+      const done = () => toast(`Copied ${links.length} ${links.length === 1 ? "song" : "songs"}. In the Spotify desktop app, make a new playlist, click inside it and press ${paste}.`);
+      // The clipboard call must happen inside the click itself, or browsers refuse it.
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => showCopyFallback(text));
+      else showCopyFallback(text);
+    });
+    return b;
+  }
 
   // Cover lookups are kept per timeline, so re-rendering (a new chapter, a name change) never refetches.
   const coverLoads = new WeakMap();
@@ -431,6 +486,7 @@
       el("span", { class: "when num", text: `Turning ${day.year - birth.year} · ${day.year} · ${duration(day.minutes / 60)}` }),
       ...songLine(day.topTracks[0])
     ])) : [el("li", { class: "empty-note", text: "No music on your birthdays yet. Time to fix that." })]);
+    fill("birthdaysCopy", days.length ? [copyButton(() => days.map(d => d.topTracks[0]), "Copy birthday playlist")] : []);
   }
 
   /** Bump chart of yearly ranks: rank 1 at the top, lines broken where an artist dropped out of the top 15. */
@@ -590,7 +646,6 @@
   }
 
   const tile = ([value, text]) => el("div", { class: "tile" }, [el("b", { class: "num", text: value }), el("span", { text })]);
-  const yearSpan = (from, to) => (from === to ? `${from}` : `${from}–${to}`);
 
   function sessionsSection(h) {
     $("sessionsSection").hidden = !h || !h.sessions;
@@ -663,7 +718,7 @@
     fill("deviceHistory", d.history.slice(0, 12).map(x => el("li", {}, [
       el("b", { text: x.name }),
       el("div", { class: "span" }, el("i", { style: `left:${(x.first - first) / span * 100}%;width:${(x.last - x.first + 1) / span * 100}%;background:${DEVICE_COLORS[x.category]}` })),
-      el("small", { class: "num", text: `${yearSpan(x.first, x.last)} · ${duration(x.hours)}` })
+      el("small", { class: "num", text: `${range(x.first, x.last)} · ${duration(x.hours)}` })
     ])));
   }
 
@@ -675,6 +730,7 @@
       el("b", { text: `"${c.track}"` }),
       el("small", { text: `${c.artist} · ${fmt(c.playsBefore)} plays until ${c.lastYear}, ${fmt(c.playsAfter)} since` })
     ])));
+    fill("comebacksCopy", list.length ? [copyButton(() => list, "Copy comebacks playlist")] : []);
   }
 
   const SEASON_STYLE = { winter: ["Winter", "var(--c2)"], spring: ["Spring", "var(--c5)"], summer: ["Summer", "var(--c3)"], autumn: ["Autumn", "var(--c1)"] };
@@ -685,7 +741,8 @@
     if (!s) return;
     fill("seasonGrid", Object.entries(SEASON_STYLE).map(([key, [label, color]]) => el("div", { class: "season", style: `--season:${color}` }, [
       el("h3", { text: label }),
-      el("ol", {}, s.top[key].map(a => el("li", { text: a.name })))
+      el("ol", {}, s.top[key].map(a => el("li", { text: a.name }))),
+      sliceButton({ months: SEASON_MONTHS[key] })
     ])));
     $("seasonalNote").textContent = s.seasonal.length
       ? `Most seasonal: ${s.seasonal.slice(0, 4).map(a => `${a.name} (${pct(a.share)} ${a.season})`).join(", ")}.`
@@ -699,6 +756,7 @@
     const typicalText = typical ? ` Your Christmas season usually starts around ${Number(typical.slice(3))} ${MONTHS[Number(typical.slice(0, 2)) - 1]}.` : "";
     const topText = c.topSongs.length ? ` Favourite: "${c.topSongs[0].track}" by ${c.topSongs[0].artist}.` : "";
     $("christmasNote").textContent = `${fmt(c.total)} plays of Christmas songs.${typicalText}${topText}`;
+    fill("christmasCopy", [sliceButton({ match: SpotifyPersona.habits.CHRISTMAS })]);
     fill("christmasYears", [...c.byYear].reverse().map(y => el("li", {}, [
       el("span", { class: "when num", text: `${y.year} · ${fmt(y.plays)} ${y.plays === 1 ? "play" : "plays"}` }),
       el("b", { text: y.first ? `First on ${Number(y.first.slice(3))} ${MONTHS[Number(y.first.slice(0, 2)) - 1]}` : "Only out of season" }),
@@ -714,6 +772,7 @@
       el("b", { text: `"${n.track}"` }),
       el("small", { text: n.artist })
     ])));
+    fill("newYearCopy", list.length ? [copyButton(() => list, "Copy New Year playlist")] : []);
   }
 
   // Dominant colours per image URL, so re-renders do not sample the same cover again.
@@ -780,6 +839,7 @@
 
   function render({ stats, persona, timeline, profile, coverCache, onRemoveChapter = () => {}, onToggleCovers = () => {}, onHideArtist: hideHandler = () => {} }) {
     onHideArtist = hideHandler;
+    currentTimeline = timeline;
     greeting(profile);
     hero(stats, persona);
     coverWall(timeline, profile, coverCache, onToggleCovers);

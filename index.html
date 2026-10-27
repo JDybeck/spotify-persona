@@ -100,6 +100,7 @@
     <div class="eyebrow">Most played, all time</div>
     <h2>The setlist</h2>
     <ol class="setlist" id="setlist"></ol>
+    <div class="pl-slot" id="setlistCopy"></div>
   </section>
 
   <section data-tab="you" id="vibesSection">
@@ -202,6 +203,7 @@
     <div id="birthdayBlock" hidden>
       <h3 class="subhead">Your birthday soundtrack</h3>
       <ol class="moments" id="birthdays"></ol>
+      <div class="pl-slot" id="birthdaysCopy"></div>
     </div>
 
     <h3 class="subhead">Your chapters</h3>
@@ -268,6 +270,7 @@
     <h2>Comebacks</h2>
     <p class="lede">Songs that went silent for three years or more, then came back.</p>
     <ol class="moments" id="comebacks"></ol>
+    <div class="pl-slot" id="comebacksCopy"></div>
   </section>
 
   <section data-tab="music" id="colorsSection">
@@ -287,6 +290,7 @@
     <div id="christmasBlock" hidden>
       <h3 class="subhead">Christmas creep</h3>
       <p class="lede" id="christmasNote"></p>
+      <div class="pl-slot" id="christmasCopy"></div>
       <ol class="moments" id="christmasYears"></ol>
     </div>
   </section>
@@ -295,6 +299,7 @@
     <div class="eyebrow">Happy New Year</div>
     <h2>Your first song of every year</h2>
     <ol class="moments" id="newYear"></ol>
+    <div class="pl-slot" id="newYearCopy"></div>
   </section>
 
   <footer>
@@ -303,6 +308,13 @@
   </footer>
 </main>
 
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="copy-fallback" id="copyFallback" hidden>
+  <p>Your browser blocked copying. Select all of these links, copy them, then paste into a Spotify playlist.</p>
+  <textarea id="copyFallbackText" readonly aria-label="Spotify links for the playlist"></textarea>
+  <button type="button" class="again" id="copyFallbackClose">Close</button>
+</div>
+
 <script src="src/locale.js"></script>
 <script src="src/genres.js"></script>
 <script src="src/analyze.js"></script>
@@ -310,6 +322,8 @@
 <script src="src/moments.js"></script>
 <script src="src/search.js"></script>
 <script src="src/covers.js"></script>
+<script src="src/playlist.js"></script>
+<script src="src/habits.js"></script>
 <script src="src/vibes.js"></script>
 <script src="src/persona.js"></script>
 <script src="src/render.js"></script>
