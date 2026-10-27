@@ -37,7 +37,12 @@
       };
       if (raw.episode_show_name) return { ...base, kind: "podcast", show: raw.episode_show_name };
       if (raw.master_metadata_album_artist_name && raw.master_metadata_track_name) {
-        return { ...base, kind: "music", artist: raw.master_metadata_album_artist_name, track: raw.master_metadata_track_name, album: raw.master_metadata_album_album_name || null };
+        const uri = raw.spotify_track_uri || "";
+        return {
+          ...base, kind: "music", artist: raw.master_metadata_album_artist_name, track: raw.master_metadata_track_name,
+          album: raw.master_metadata_album_album_name || null,
+          trackId: uri.startsWith("spotify:track:") ? uri.slice(14) : null
+        };
       }
       return null;
     }
@@ -46,7 +51,7 @@
       const base = { date: new Date(raw.endTime.replace(" ", "T") + "Z"), ms: raw.msPlayed || 0, skipped: null, shuffle: null, incognito: null, country: null };
       if (raw.podcastName) return { ...base, kind: "podcast", show: raw.podcastName };
       if (raw.artistName && raw.trackName && raw.artistName !== "Unknown Artist") {
-        return { ...base, kind: "music", artist: raw.artistName, track: raw.trackName, album: null };
+        return { ...base, kind: "music", artist: raw.artistName, track: raw.trackName, album: null, trackId: null };
       }
       return null;
     }
@@ -90,6 +95,8 @@
   function createTimelineBuilder() {
     const trackIds = new Map(), artistIds = new Map(), albumIds = new Map();
     const trackNames = [], trackArtist = [], trackAlbum = [], artistNames = [], albumNames = [], albumArtist = [];
+    // Spotify track IDs ("" when unknown), only used to look up album covers when the user opts in.
+    const trackIdsOut = [];
     const rowIndex = new Map();
     const slot = [], track = [], streams = [], plays = [], ms = [];
 
@@ -111,6 +118,7 @@
         id = trackIds.size;
         trackIds.set(key, id);
         trackNames.push(r.track);
+        trackIdsOut.push(r.trackId || "");
         const artistId = intern(artistIds, r.artist, artistNames);
         trackArtist.push(artistId);
         let albumId = -1;
@@ -146,6 +154,7 @@
         artistNames,
         albumNames,
         albumArtist: Uint32Array.from(albumArtist),
+        trackSpotifyIds: trackIdsOut,
         trackArtist: Uint32Array.from(trackArtist),
         trackAlbum: Int32Array.from(trackAlbum),
         slot: Int32Array.from(slot),

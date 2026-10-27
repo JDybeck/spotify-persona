@@ -225,6 +225,25 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .poster .tier button:hover { text-decoration: underline; text-decoration-thickness: 2px; }
 .poster .tier button:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
 
+/* Cover wall: two rows drifting in opposite directions. Each row holds its covers twice, so moving
+   it by half its width loops seamlessly. Spacing uses margins, not gap, to keep both halves equal. */
+.cover-wall { display: grid; gap: 10px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.cover-row { display: flex; width: max-content; animation: cover-drift var(--duration, 90s) linear infinite; }
+.cover-row.reverse { animation-direction: reverse; }
+.cover-row img { width: clamp(72px, 11vw, 116px); height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 4px; margin-right: 10px; display: block; background: var(--stage); }
+.cover-wall:hover .cover-row { animation-play-state: paused; }
+@keyframes cover-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.cover-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--muted); font-size: .85rem; }
+@media (prefers-reduced-motion: reduce) { .cover-row { animation: none; } }
+
+/* Each results section gets its own accent, so the page reads as a set of posters, not one colour. */
+:root { --c1: #ff7a45; --c2: #4fc3f7; --c3: #ffc145; --c4: #c58cff; --c5: #7ed6a5; --c6: #ff8fc8; }
+#result > section:nth-of-type(6n + 2) { --sunset: var(--c2); }
+#result > section:nth-of-type(6n + 3) { --sunset: var(--c3); }
+#result > section:nth-of-type(6n + 4) { --sunset: var(--c4); }
+#result > section:nth-of-type(6n + 5) { --sunset: var(--c5); }
+#result > section:nth-of-type(6n + 6) { --sunset: var(--c6); }
+
 /* Life stages */
 .born { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .born label { font-family: var(--mono); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

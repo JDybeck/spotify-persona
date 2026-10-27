@@ -329,6 +329,52 @@
   };
   const songLine = t => [el("b", { text: `"${t.track}"` }), el("small", { text: `${t.artist} · ${fmt(t.plays)} ${t.plays === 1 ? "play" : "plays"}` })];
 
+  // Cover lookups are kept per timeline, so re-rendering (a new chapter, a name change) never refetches.
+  const coverLoads = new WeakMap();
+
+  function coverRow(items, reverse) {
+    const img = c => {
+      const i = el("img", { src: c.url, alt: "", title: `${c.album} · ${c.artist}`, referrerpolicy: "no-referrer", decoding: "async" });
+      i.addEventListener("error", () => i.remove());
+      return i;
+    };
+    // Twice the same covers, so sliding the row by half its width lands exactly on the start again.
+    return el("div", { class: `cover-row${reverse ? " reverse" : ""}`, style: `--duration:${Math.max(40, items.length * 6)}s` },
+      [...items.map(img), ...items.map(img)]);
+  }
+
+  function coverWall(timeline, profile, coverCache, onToggleCovers) {
+    const api = SpotifyPersona.covers;
+    const albums = api.pickAlbums(timeline);
+    $("coverToggle").hidden = albums.length === 0;
+    $("coversButton").textContent = profile.covers ? "Hide album covers" : "Show my album covers";
+    $("coversButton").onclick = onToggleCovers;
+    if (!profile.covers || albums.length === 0) {
+      $("coverWall").hidden = true;
+      return;
+    }
+
+    let load = coverLoads.get(timeline);
+    if (!load) {
+      $("coverNote").textContent = "Fetching covers from Spotify...";
+      load = api.loadCovers(albums, { fetchFn: (...args) => fetch(...args), cache: coverCache });
+      coverLoads.set(timeline, load);
+    }
+    load.then(covers => {
+      coverCache.save();
+      $("coverNote").textContent = covers.length
+        ? `Covers of your ${covers.length} most played albums, from Spotify. Everything else stays in your browser.`
+        : "Spotify didn't return any covers. Try again later.";
+      if (!profile.covers || covers.length === 0) return;
+      // One row looks thin with few covers, so split into two rows only when there are enough.
+      const rows = covers.length >= 12
+        ? [coverRow(covers.filter((_, i) => i % 2 === 0), false), coverRow(covers.filter((_, i) => i % 2 === 1), true)]
+        : [coverRow(covers, false)];
+      fill("coverWall", rows);
+      $("coverWall").hidden = false;
+    });
+  }
+
   function greeting(profile) {
     $("greeting").textContent = profile.name ? `Hey ${profile.name}, this is your Spotify personality` : "Your Spotify personality";
   }
@@ -540,9 +586,10 @@
     ])));
   }
 
-  function render({ stats, persona, timeline, profile, onRemoveChapter = () => {} }) {
+  function render({ stats, persona, timeline, profile, coverCache, onRemoveChapter = () => {}, onToggleCovers = () => {} }) {
     greeting(profile);
     hero(stats, persona);
+    coverWall(timeline, profile, coverCache, onToggleCovers);
     traits(persona);
     lineup(stats, timeline);
     genres(persona);

@@ -14,14 +14,26 @@
   function loadProfile() {
     try {
       const saved = JSON.parse(localStorage.getItem(PROFILE_KEY));
-      if (saved) return { name: saved.name || "", birth: saved.birth || null, chapters: Array.isArray(saved.chapters) ? saved.chapters : [] };
+      if (saved) return { name: saved.name || "", birth: saved.birth || null, chapters: Array.isArray(saved.chapters) ? saved.chapters : [], covers: saved.covers === true };
     } catch { /* fall through */ }
-    return { name: "", birth: null, chapters: [] };
+    return { name: "", birth: null, chapters: [], covers: false };
   }
 
   function saveProfile() {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch { /* ignore */ }
   }
+
+  // Cover image URLs by Spotify track ID, so covers show instantly on the next visit.
+  const COVER_CACHE_KEY = "spotify-persona:cover-urls";
+  const coverCache = (() => {
+    let urls = {};
+    try { urls = JSON.parse(localStorage.getItem(COVER_CACHE_KEY)) || {}; } catch { urls = {}; }
+    return {
+      get: id => urls[id],
+      set: (id, url) => { urls[id] = url; },
+      save: () => { try { localStorage.setItem(COVER_CACHE_KEY, JSON.stringify(urls)); } catch { /* ignore */ } }
+    };
+  })();
 
   function validYear(value) {
     const year = Number(value);
@@ -39,6 +51,12 @@
       timeline,
       profile,
       persona: SpotifyPersona.persona.buildPersona(stats, profile),
+      coverCache,
+      onToggleCovers: () => {
+        profile.covers = !profile.covers;
+        saveProfile();
+        show();
+      },
       onRemoveChapter: index => {
         profile.chapters.splice(index, 1);
         saveProfile();

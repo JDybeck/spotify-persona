@@ -23,9 +23,10 @@ The basic **Account data** export also works if that is what you have, but it on
 
 ## Privacy
 
-- **Nothing is uploaded.** There is no backend. The zip is read in your browser and the results only exist in that tab.
+- **Nothing is uploaded.** There is no backend. The zip is read in your browser and the results only exist in that tab. Your history itself never leaves the page.
 - **Only listening history is read.** The worker opens files named `Streaming_History_Audio_*.json` or `StreamingHistory*.json` and nothing else. Every other file in the export is never decompressed or parsed.
 - **Payment data is never read or stored.** This is a hard rule: payment, subscription and identity files are excluded, and a test fails if the file filter ever matches them.
+- **Album covers are opt-in.** The export has no images, so "Show my album covers" asks Spotify's public oEmbed endpoint for the covers of your top 40 albums, using one track ID per album. This is the only request that ever leaves the page, it only goes to Spotify, and it only happens after you press the button. The cover URLs are cached in your browser.
 - **What is stored.** Only what you choose to type in yourself (a first name for the greeting, birth date and life chapters), kept in your own browser's local storage. Personal details are never read from the export. Clearing site data removes it.
 
 ## Run locally
@@ -44,6 +45,7 @@ Any static file server works, for example `python -m http.server`.
 | --- | --- |
 | `src/analyze.js` | Normalizes both export formats and aggregates stats in one pass, file by file |
 | `src/genres.js` | Genre definitions and the artist-to-genre dictionary |
+| `src/covers.js` | Opt-in album covers for your top albums via Spotify's oEmbed endpoint |
 | `src/locale.js` | Guesses the visitor's country from browser settings and shows Spotify's own data-box labels in its language(s) |
 | `src/search.js` | Accent-insensitive search over artists, songs and albums, plus their detail views |
 | `src/moments.js` | On this day, birthday songs, discoveries and yearly artist ranks |
