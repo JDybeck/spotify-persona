@@ -75,11 +75,11 @@
   function setlist(stats, persona) {
     const tags = persona.vibes.tags;
     fill("setlist", stats.topTracks.slice(0, 15).map(t => el("li", {}, [
-      el("div", { class: "song" }, [
+      el("div", { class: "song" }, withThumb(t, [
         el("b", { text: t.track }),
         el("span", { text: t.artist }),
         el("div", {}, (tags[`${t.track}\u0000${t.artist}`] || []).map(tag => el("span", { class: "tagchip", text: tag })))
-      ]),
+      ])),
       el("span", { class: "plays num", text: `${fmt(t.plays)} plays` })
     ])));
     fill("setlistCopy", [copyButton(() => stats.topTracks, `Copy top ${stats.topTracks.length} as playlist`)]);
@@ -104,7 +104,7 @@
       el("p", { text: v.blurb }),
       el("ol", {}, v.songs.map(s => el("li", {}, [
         el("span", { class: "dot", style: `background:${energyVar(s.energy)}` }),
-        el("span", {}, [el("b", { text: s.track }), el("small", { text: `${s.artist} · ${s.detail}` })])
+        el("span", {}, withThumb(s, [el("b", { text: s.track }), el("small", { text: `${s.artist} · ${s.detail}` })]))
       ]))),
       copyButton(() => v.playlist, `Copy ${v.playlist.length} as playlist`)
     ])));
@@ -121,7 +121,7 @@
       const title = el("b", { text: t.track });
       if (top.has(`${t.track}\u0000${t.artist}`)) title.append(el("span", { class: "chip", text: "love-hate" }));
       return el("li", {}, [
-        el("div", { class: "who" }, [title, el("span", { text: t.artist })]),
+        el("div", { class: "who" }, withThumb(t, [title, el("span", { text: t.artist })])),
         el("span", { class: "stat num" }, [el("b", { text: `${fmt(t.skips)} skips` }), el("br"), `${pct(t.rate)} of ${fmt(t.starts)}`])
       ]);
     }));
@@ -285,7 +285,7 @@
           el("div", { class: "meter" }, el("i", { style: `width:${a.hours / maxArtist * 100}%` }))
         ])))]),
         el("div", {}, [el("h3", { text: "Top songs" }), el("ol", { class: "ranked" }, result.topTracks.map(t => el("li", {}, [
-          el("span", {}, [t.track, el("small", { text: t.artist })]),
+          el("span", {}, withThumb(t, [t.track, el("small", { text: t.artist })])),
           el("span", { class: "stat num", text: `${fmt(t.plays)} plays` })
         ])))])
       ]),
@@ -387,6 +387,55 @@
   // Cover lookups are kept per timeline, so re-rendering (a new chapter, a name change) never refetches.
   const coverLoads = new WeakMap();
 
+  // One queue for every cover on the page (wall, palette and song thumbnails), created on first use.
+  let coverQueue = null;
+  function coverQueueFor(coverCache) {
+    if (!coverQueue) coverQueue = SpotifyPersona.covers.createCoverQueue({ fetchFn: (...args) => fetch(...args), cache: coverCache });
+    return coverQueue;
+  }
+
+  // Whether covers are on for this render; song thumbnails only appear when they are.
+  let coversOn = false;
+  let thumbObserver = null;
+
+  /** Fills an <img> with its track's cover once it scrolls near the screen, so lists do not fetch everything at once. */
+  function observeThumb(img) {
+    if (!thumbObserver) {
+      thumbObserver = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const target = entry.target;
+          thumbObserver.unobserve(target);
+          coverQueue.get(target.dataset.trackId).then(url => {
+            if (url) target.src = url;
+            else target.classList.add("none");
+          });
+        }
+      }, { rootMargin: "300px" });
+    }
+    thumbObserver.observe(img);
+  }
+
+  /**
+   * A small album cover for a song ({ track, artist }) or album ({ albumId }), or "" when covers are off
+   * or the export has no Spotify ID for it.
+   */
+  function thumb(item, size = "") {
+    if (!coversOn || !coverQueue || !currentTimeline) return "";
+    const playlist = SpotifyPersona.playlist;
+    const id = item.albumId !== undefined ? playlist.albumTrackId(currentTimeline, item.albumId) : playlist.idFor(currentTimeline, item.track, item.artist);
+    if (!id) return el("span", { class: `thumb none ${size}`.trim() });
+    const img = el("img", { class: `thumb ${size}`.trim(), alt: "", "data-track-id": id, referrerpolicy: "no-referrer", decoding: "async" });
+    observeThumb(img);
+    return img;
+  }
+
+  /** Puts a thumbnail in front of a song's text, or returns the text unchanged when covers are off. */
+  function withThumb(item, nodes) {
+    const t = thumb(item);
+    return t ? [el("div", { class: "with-thumb" }, [t, el("div", { class: "with-thumb-text" }, nodes)])] : nodes;
+  }
+
   function coverRow(items, reverse) {
     const img = c => {
       const i = el("img", { src: c.url, alt: "", title: `${c.album} · ${c.artist}`, referrerpolicy: "no-referrer", decoding: "async" });
@@ -414,20 +463,23 @@
       return;
     }
 
-    // Top albums for the wall, plus each year's #1 album for the colour of each year, looked up together.
+    // Top albums for the wall, plus each year's top albums for the colour of each year, looked up together.
+    const queue = coverQueueFor(coverCache);
     let load = coverLoads.get(timeline);
     if (!load) {
       $("coverNote").textContent = "Fetching covers from Spotify...";
       const seen = new Set(albums.map(a => a.trackId));
-      const all = [...albums, ...yearAlbums.filter(a => !seen.has(a.trackId) && seen.add(a.trackId))];
-      load = api.loadCovers(all, { fetchFn: (...args) => fetch(...args), cache: coverCache });
+      const extra = yearAlbums.flatMap(y => y.albums).filter(a => !seen.has(a.trackId) && seen.add(a.trackId));
+      load = api.loadCovers([...albums, ...extra], { queue });
       coverLoads.set(timeline, load);
     }
     load.then(found => {
-      coverCache.save();
       const urlById = new Map(found.map(c => [c.trackId, c.url]));
       const covers = albums.filter(a => urlById.has(a.trackId)).map(a => ({ ...a, url: urlById.get(a.trackId) }));
-      const yearCovers = yearAlbums.filter(a => urlById.has(a.trackId)).map(a => ({ ...a, url: urlById.get(a.trackId) }));
+      const yearCovers = yearAlbums.map(y => ({
+        year: y.year,
+        albums: y.albums.filter(a => urlById.has(a.trackId)).map(a => ({ ...a, url: urlById.get(a.trackId) }))
+      })).filter(y => y.albums.length);
       $("coverNote").textContent = covers.length
         ? `Covers of your ${covers.length} most played albums, from Spotify. Everything else stays in your browser.`
         : "Spotify didn't return any covers. Try again later.";
@@ -471,7 +523,7 @@
         const when = [String(day.year)];
         if (age !== null && age >= 0) when.push(`age ${age}`);
         when.push(duration(day.minutes / 60));
-        return el("li", {}, [el("span", { class: "when num", text: when.join(" · ") }), ...day.topTracks.flatMap(songLine)]);
+        return el("li", {}, [el("span", { class: "when num", text: when.join(" · ") }), ...day.topTracks.flatMap(t => withThumb(t, songLine(t)))]);
       }));
     };
     input.onchange = update;
@@ -484,7 +536,7 @@
     const days = SpotifyPersona.moments.onThisDay(timeline, birth.month, birth.day, 1);
     fill("birthdays", days.length ? days.map(day => el("li", {}, [
       el("span", { class: "when num", text: `Turning ${day.year - birth.year} · ${day.year} · ${duration(day.minutes / 60)}` }),
-      ...songLine(day.topTracks[0])
+      ...withThumb(day.topTracks[0], songLine(day.topTracks[0]))
     ])) : [el("li", { class: "empty-note", text: "No music on your birthdays yet. Time to fix that." })]);
     fill("birthdaysCopy", days.length ? [copyButton(() => days.map(d => d.topTracks[0]), "Copy birthday playlist")] : []);
   }
@@ -557,8 +609,10 @@
 
   const KIND_LABEL = { artist: "Artist", track: "Song", album: "Album" };
 
-  function pickButton(main, sub, onClick) {
-    const b = el("button", { type: "button", class: "pick" }, [el("b", { text: main }), sub ? el("small", { text: sub }) : ""]);
+  /** A clickable result row; `item` ({ track, artist } or { albumId }) adds a cover thumbnail when covers are on. */
+  function pickButton(main, sub, onClick, item = null) {
+    const text = [el("b", { text: main }), sub ? el("small", { text: sub }) : ""];
+    const b = el("button", { type: "button", class: "pick" }, item ? withThumb(item, text) : text);
     b.addEventListener("click", onClick);
     return b;
   }
@@ -584,19 +638,20 @@
     if (d.topTracks.length) {
       lists.push(el("div", {}, [el("h3", { text: kind === "album" ? "Songs you played" : "Top songs" }),
         el("ol", { class: "ranked" }, d.topTracks.map(t => el("li", {}, [
-          pickButton(t.track, null, () => openDetail(timeline, "track", t.id)),
+          pickButton(t.track, null, () => openDetail(timeline, "track", t.id), { track: t.track, artist: kind === "artist" ? d.name : d.by }),
           el("span", { class: "stat num", text: plural(t.plays) })
         ])))]));
     }
     if (d.topAlbums.length) {
       lists.push(el("div", {}, [el("h3", { text: "Top albums" }),
         el("ol", { class: "ranked" }, d.topAlbums.map(a => el("li", {}, [
-          pickButton(a.album, null, () => openDetail(timeline, "album", a.id)),
+          pickButton(a.album, null, () => openDetail(timeline, "album", a.id), { albumId: a.id }),
           el("span", { class: "stat num", text: plural(a.plays) })
         ])))]));
     }
 
-    const header = [el("span", { class: "detail-kind", text: d.by ? `${KIND_LABEL[kind]} by ${d.by}` : KIND_LABEL[kind] }), el("span", { class: "detail-name", text: d.name })];
+    const cover = kind === "track" ? thumb({ track: d.name, artist: d.by }, "big") : kind === "album" ? thumb({ albumId: id }, "big") : "";
+    const header = [cover, el("span", { class: "detail-kind", text: d.by ? `${KIND_LABEL[kind]} by ${d.by}` : KIND_LABEL[kind] }), el("span", { class: "detail-name", text: d.name })];
     if (d.by) {
       const byId = timeline.artistNames.indexOf(d.by);
       header.push(pickButton(`More from ${d.by}`, null, () => openDetail(timeline, "artist", byId)));
@@ -638,7 +693,12 @@
       }
       fill("searchResults", groups.map(([title, items]) => el("div", {}, [
         el("h3", { text: title }),
-        el("ol", {}, items.map(x => el("li", {}, pickButton(x.name, `${x.by ? `${x.by} · ` : ""}${fmt(x.plays)} ${x.plays === 1 ? "play" : "plays"}`, () => openDetail(timeline, x.kind, x.id)))))
+        el("ol", {}, items.map(x => el("li", {}, pickButton(
+          x.name,
+          `${x.by ? `${x.by} · ` : ""}${fmt(x.plays)} ${x.plays === 1 ? "play" : "plays"}`,
+          () => openDetail(timeline, x.kind, x.id),
+          x.kind === "track" ? { track: x.name, artist: x.by } : x.kind === "album" ? { albumId: x.id } : null
+        ))))
       ])));
     };
     input.oninput = () => { clearTimeout(timer); timer = setTimeout(run, 120); };
@@ -727,8 +787,10 @@
     $("comebacksSection").hidden = list.length === 0;
     fill("comebacks", list.map(c => el("li", {}, [
       el("span", { class: "when num", text: `Back in ${c.backYear} after ${c.silentYears} silent years` }),
-      el("b", { text: `"${c.track}"` }),
-      el("small", { text: `${c.artist} · ${fmt(c.playsBefore)} plays until ${c.lastYear}, ${fmt(c.playsAfter)} since` })
+      ...withThumb(c, [
+        el("b", { text: `"${c.track}"` }),
+        el("small", { text: `${c.artist} · ${fmt(c.playsBefore)} plays until ${c.lastYear}, ${fmt(c.playsAfter)} since` })
+      ])
     ])));
     fill("comebacksCopy", list.length ? [copyButton(() => list, "Copy comebacks playlist")] : []);
   }
@@ -769,8 +831,7 @@
     $("newYearSection").hidden = list.length === 0;
     fill("newYear", [...list].reverse().map(n => el("li", {}, [
       el("span", { class: "when num", text: `${prettyDate(n.date)} · ${n.time}` }),
-      el("b", { text: `"${n.track}"` }),
-      el("small", { text: n.artist })
+      ...withThumb(n, [el("b", { text: `"${n.track}"` }), el("small", { text: n.artist })])
     ])));
     fill("newYearCopy", list.length ? [copyButton(() => list, "Copy New Year playlist")] : []);
   }
@@ -801,18 +862,41 @@
     return colorCache.get(url);
   }
 
+  /**
+   * Tints the page's background glows with the three most vivid of the given colours,
+   * or puts the default accent glows back when given nothing.
+   */
+  function setGlow(colors) {
+    const root = document.documentElement.style;
+    const vivid = (colors || []).filter(c => SpotifyPersona.covers.vividness(c) >= 0.25)
+      .sort((a, b) => SpotifyPersona.covers.vividness(b) - SpotifyPersona.covers.vividness(a));
+    ["--glow-1", "--glow-2", "--glow-3"].forEach((name, i) => {
+      if (vivid[i]) root.setProperty(name, hex(vivid[i]));
+      else root.removeProperty(name);
+    });
+  }
+
   async function colorsSection(topCovers, yearCovers) {
-    const withColor = async list => (await Promise.all(list.map(async c => ({ ...c, rgb: await sampleColor(c.url) })))).filter(c => c.rgb);
-    const [top, byYear] = await Promise.all([withColor(topCovers.slice(0, 12)), withColor(yearCovers)]);
+    const api = SpotifyPersona.covers;
+    const top = (await Promise.all(topCovers.slice(0, 12).map(async c => ({ ...c, rgb: await sampleColor(c.url) })))).filter(c => c.rgb);
+    setGlow(top.map(c => c.rgb));
+    // A year's colour is the most vivid of its top albums' colours; its tile shows the #1 album's cover.
+    const byYear = await Promise.all(yearCovers.map(async y => {
+      const colors = await Promise.all(y.albums.map(a => sampleColor(a.url)));
+      const rgb = api.yearColor(colors);
+      const source = y.albums[colors.indexOf(rgb)] || y.albums[0];
+      return { year: y.year, rgb, cover: y.albums[0], source };
+    }));
     $("colorsNote").textContent = "The strongest color on each of your most played covers.";
     fill("swatches", top.map(c => el("div", { class: "swatch", title: `${c.album} · ${c.artist}` }, [
       el("div", { class: "chips" }, [el("img", { src: c.url, alt: "", referrerpolicy: "no-referrer" }), el("i", { style: `background:${hex(c.rgb)}` })]),
       el("small", {}, [el("code", { text: hex(c.rgb) }), el("br"), c.album])
     ])));
-    $("yearColors").style.gridTemplateColumns = `repeat(${byYear.length}, minmax(0, 1fr))`;
-    fill("yearColors", byYear.map((c, i) => el("div", { title: `${c.year}: ${c.album} · ${c.artist}` }, [
-      el("i", { style: `background:${hex(c.rgb)}` }),
-      el("span", { text: byYear.length > 10 && i % 2 ? "" : `'${String(c.year).slice(2)}` })
+    const years = byYear.filter(y => y.rgb);
+    fill("yearColors", years.map(y => el("div", { class: "year-tile", title: `${y.year}: ${y.cover.album} · ${y.cover.artist}${y.source !== y.cover ? ` (color from ${y.source.album})` : ""}` }, [
+      el("img", { src: y.cover.url, alt: "", referrerpolicy: "no-referrer" }),
+      el("i", { style: `background:${hex(y.rgb)}` }),
+      el("span", { class: "num", text: String(y.year) })
     ])));
   }
 
@@ -840,6 +924,9 @@
   function render({ stats, persona, timeline, profile, coverCache, onRemoveChapter = () => {}, onToggleCovers = () => {}, onHideArtist: hideHandler = () => {} }) {
     onHideArtist = hideHandler;
     currentTimeline = timeline;
+    coversOn = profile.covers && SpotifyPersona.playlist.available(timeline);
+    if (coversOn) coverQueueFor(coverCache);
+    if (!coversOn) setGlow(null);
     greeting(profile);
     hero(stats, persona);
     coverWall(timeline, profile, coverCache, onToggleCovers);

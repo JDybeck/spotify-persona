@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createAggregator } = require("../src/analyze.js");
-const { pickAlbums, pickYearAlbums, dominantColor, coverUrl, loadCovers } = require("../src/covers.js");
+const { pickAlbums, pickYearAlbums, dominantColor, vividness, yearColor, coverUrl, createCoverQueue, loadCovers } = require("../src/covers.js");
 
 // RGBA pixel data from [count, [r, g, b]] runs.
 function pixels(...runs) {
@@ -58,7 +58,7 @@ test("dominantColor falls back to the average for black, white or grey covers", 
   assert.equal(dominantColor(new Uint8ClampedArray(0)), null);
 });
 
-test("pickYearAlbums takes each year's most listened album", () => {
+test("pickYearAlbums lists each year's most listened albums, biggest first", () => {
   const agg = createAggregator();
   const add = (y, artist, track, album, id, n) => {
     for (let i = 0; i < n; i++) agg.addRecord({ ...record(artist, track, album, id), ts: new Date(y, 0, 1 + i, 12).toISOString() });
@@ -66,7 +66,18 @@ test("pickYearAlbums takes each year's most listened album", () => {
   add(2019, "Avicii", "Levels", "Levels", "levels", 3);
   add(2019, "Architects", "Doomsday", "Holy Hell", "doom", 1);
   add(2020, "Architects", "Doomsday", "Holy Hell", "doom", 2);
-  assert.deepEqual(pickYearAlbums(agg.timeline()).map(a => [a.year, a.album, a.trackId]), [[2019, "Levels", "levels"], [2020, "Holy Hell", "doom"]]);
+  const years = pickYearAlbums(agg.timeline());
+  assert.deepEqual(years.map(y => [y.year, y.albums.map(a => a.trackId)]), [[2019, ["levels", "doom"]], [2020, ["doom"]]]);
+  assert.equal(pickYearAlbums(agg.timeline(), 1)[0].albums.length, 1);
+});
+
+test("yearColor prefers a vivid colour among the top albums, but keeps a dark year dark", () => {
+  const black = [12, 12, 12], red = [210, 40, 40], grey = [90, 90, 95];
+  assert.deepEqual(yearColor([black, red, grey]), red, "the #1 album is black, the #2 has colour");
+  assert.deepEqual(yearColor([black, grey]), black, "no album has real colour, so the biggest one stands");
+  assert.deepEqual(yearColor([null, grey]), grey);
+  assert.equal(yearColor([]), null);
+  assert.ok(vividness(red) > vividness(grey));
 });
 
 test("coverUrl reads the thumbnail from oEmbed and rejects anything that is not https", async () => {
@@ -87,6 +98,30 @@ test("loadCovers uses the cache, skips failures and keeps the original order", a
   assert.equal(calls.length, 3, "the cached cover is not fetched again");
   assert.equal(cache.get("c"), "https://img/c");
   assert.deepEqual([...seen].sort(), ["a", "b", "c"]);
+});
+
+test("the cover queue fetches each track once, limits concurrency and saves when idle", async () => {
+  let active = 0, peak = 0, saves = 0;
+  const calls = [];
+  const fetchFn = async url => {
+    calls.push(url);
+    active++; peak = Math.max(peak, active);
+    await new Promise(r => setTimeout(r, 5));
+    active--;
+    return { ok: true, json: async () => ({ thumbnail_url: `https://img/${calls.length}` }) };
+  };
+  const cache = { map: new Map(), get(id) { return this.map.get(id); }, set(id, url) { this.map.set(id, url); }, save() { saves++; } };
+  const q = createCoverQueue({ fetchFn, cache, concurrency: 2 });
+  const ids = ["a", "b", "a", "c", "d", "a"];
+  const urls = await Promise.all(ids.map(id => q.get(id)));
+  assert.equal(calls.length, 4, "a is only fetched once");
+  assert.equal(urls[0], urls[2]);
+  assert.equal(peak, 2);
+  assert.ok(saves >= 1);
+  assert.equal(await q.get(null), null);
+  const again = await q.get("a");
+  assert.equal(again, urls[0]);
+  assert.equal(calls.length, 4, "cached afterwards");
 });
 
 test("loadCovers survives a network error", async () => {

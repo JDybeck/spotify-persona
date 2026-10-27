@@ -38,8 +38,11 @@
       }));
   }
 
-  /** Each year's most-listened album that has a Spotify track ID, for the colour of each year. */
-  function pickYearAlbums(timeline) {
+  /**
+   * Each year's most-listened albums (up to `perYear`) that have a Spotify track ID, biggest first,
+   * as { year, albums: [{ album, artist, trackId }] }. The colour of a year is picked among them.
+   */
+  function pickYearAlbums(timeline, perYear = 3) {
     const ids = timeline.trackSpotifyIds || [];
     const byYear = new Map(), trackMs = new Map();
     for (let i = 0; i < timeline.slot.length; i++) {
@@ -57,10 +60,29 @@
       const best = bestTrack.get(album);
       if (best === undefined || ms > trackMs.get(best)) bestTrack.set(album, t);
     }
-    return [...byYear.entries()].sort((a, b) => a[0] - b[0]).map(([year, albums]) => {
-      const [album] = [...albums.entries()].reduce((a, b) => (b[1] > a[1] ? b : a));
-      return { year, album: timeline.albumNames[album], artist: timeline.artistNames[timeline.albumArtist[album]], trackId: ids[bestTrack.get(album)] };
-    });
+    return [...byYear.entries()].sort((a, b) => a[0] - b[0]).map(([year, albums]) => ({
+      year,
+      albums: [...albums.entries()].sort((a, b) => b[1] - a[1]).slice(0, perYear).map(([album]) => ({
+        album: timeline.albumNames[album], artist: timeline.artistNames[timeline.albumArtist[album]], trackId: ids[bestTrack.get(album)]
+      }))
+    }));
+  }
+
+  /** How vivid a colour looks, 0 to 1: saturation times brightness, so grey, black and white score low. */
+  function vividness([r, g, b]) {
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    return max === 0 ? 0 : ((max - min) / max) * (max / 255);
+  }
+
+  /**
+   * Picks a year's colour from its top albums' colours (biggest album first): the most vivid one,
+   * unless none of them has real colour, in which case the biggest album's colour stands.
+   */
+  function yearColor(colors) {
+    const usable = colors.filter(Boolean);
+    if (usable.length === 0) return null;
+    const best = usable.reduce((a, b) => (vividness(b) > vividness(a) ? b : a));
+    return vividness(best) >= 0.2 ? best : usable[0];
   }
 
   const MIN_VIVID_SHARE = 0.05;
@@ -105,32 +127,62 @@
   }
 
   /**
-   * Resolves covers a few at a time, reusing cached URLs. Calls onCover(item, url) as each one
-   * arrives, so the page can show covers progressively. Failed lookups are skipped.
+   * One shared lookup queue for every cover on the page: cached URLs come back at once, the same track
+   * is only fetched once however many rows ask for it, and at most `concurrency` requests run together.
+   * cache is { get, set, save? }; save runs whenever the queue goes idle.
    */
-  async function loadCovers(items, { fetchFn, cache, onCover = () => {}, concurrency = CONCURRENCY }) {
-    const queue = [...items];
-    const results = [];
-    async function worker() {
-      while (queue.length) {
-        const item = queue.shift();
-        let url = cache.get(item.trackId);
-        if (!url) {
-          try { url = await coverUrl(item.trackId, fetchFn); } catch { url = null; }
-          if (url) cache.set(item.trackId, url);
-        }
-        if (url) {
-          const withUrl = { ...item, url };
-          results.push(withUrl);
-          onCover(withUrl);
-        }
+  function createCoverQueue({ fetchFn, cache, concurrency = CONCURRENCY }) {
+    const pending = new Map();
+    const waiting = [];
+    let running = 0;
+
+    function pump() {
+      while (running < concurrency && waiting.length) {
+        const { trackId, resolve } = waiting.shift();
+        running++;
+        coverUrl(trackId, fetchFn)
+          .catch(() => null)
+          .then(url => {
+            if (url) cache.set(trackId, url);
+            pending.delete(trackId);
+            resolve(url);
+            running--;
+            if (running === 0 && waiting.length === 0 && cache.save) cache.save();
+            pump();
+          });
       }
     }
-    await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
-    // Keep the original order (biggest albums first), whatever order the lookups finished in.
-    const rank = new Map(items.map((item, i) => [item.trackId, i]));
-    return results.sort((a, b) => rank.get(a.trackId) - rank.get(b.trackId));
+
+    /** The cover URL for a Spotify track ID, or null when there is none. */
+    function get(trackId) {
+      if (!trackId) return Promise.resolve(null);
+      const cached = cache.get(trackId);
+      if (cached) return Promise.resolve(cached);
+      if (!pending.has(trackId)) {
+        pending.set(trackId, new Promise(resolve => waiting.push({ trackId, resolve })));
+        pump();
+      }
+      return pending.get(trackId);
+    }
+
+    return { get };
   }
 
-  return { pickAlbums, pickYearAlbums, dominantColor, coverUrl, loadCovers };
+  /**
+   * Resolves covers for a list of { trackId } items through a cover queue, calling onCover as each
+   * arrives. Failed lookups are skipped; the result keeps the original order (biggest albums first).
+   */
+  async function loadCovers(items, { fetchFn, cache, onCover = () => {}, concurrency = CONCURRENCY, queue = null }) {
+    const q = queue || createCoverQueue({ fetchFn, cache, concurrency });
+    const results = await Promise.all(items.map(async item => {
+      const url = await q.get(item.trackId);
+      if (!url) return null;
+      const withUrl = { ...item, url };
+      onCover(withUrl);
+      return withUrl;
+    }));
+    return results.filter(Boolean);
+  }
+
+  return { pickAlbums, pickYearAlbums, dominantColor, vividness, yearColor, coverUrl, createCoverQueue, loadCovers };
 });

@@ -27,6 +27,27 @@
     return byKey;
   }
 
+  /** The Spotify track ID for a song by name and artist, or null. */
+  function idFor(timeline, track, artist) {
+    return lookup(timeline).get(keyOf(track, artist)) || null;
+  }
+
+  // Album id to the Spotify ID of one of its tracks, which is all a cover lookup needs.
+  const albumCache = new WeakMap();
+  function albumTrackId(timeline, albumId) {
+    let byAlbum = albumCache.get(timeline);
+    if (!byAlbum) {
+      byAlbum = new Map();
+      const ids = timeline.trackSpotifyIds || [];
+      for (let t = 0; t < timeline.trackNames.length; t++) {
+        const album = timeline.trackAlbum[t];
+        if (album >= 0 && ids[t] && !byAlbum.has(album)) byAlbum.set(album, ids[t]);
+      }
+      albumCache.set(timeline, byAlbum);
+    }
+    return byAlbum.get(albumId) || null;
+  }
+
   /** True when the export has Spotify track IDs at all (the basic account-data export does not). */
   function available(timeline) {
     return (timeline.trackSpotifyIds || []).some(Boolean);
@@ -74,5 +95,5 @@
       .map(([t, n]) => ({ track: timeline.trackNames[t], artist: timeline.artistNames[timeline.trackArtist[t]], plays: n }));
   }
 
-  return { available, linksFor, topSongs, DEFAULT_SIZE };
+  return { available, idFor, albumTrackId, linksFor, topSongs, DEFAULT_SIZE };
 });

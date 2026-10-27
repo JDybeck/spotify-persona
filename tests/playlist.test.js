@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createAggregator } = require("../src/analyze.js");
-const { available, linksFor, topSongs } = require("../src/playlist.js");
+const { available, idFor, albumTrackId, linksFor, topSongs } = require("../src/playlist.js");
 
 function record(y, m, d, artist, track, id, album = "Album") {
   return {
@@ -41,6 +41,15 @@ test("linksFor keeps order and drops unknown songs and duplicates; a song on sev
     { track: "Doomsday", artist: "Architects" }
   ]);
   assert.deepEqual(links, ["https://open.spotify.com/track/doom", "https://open.spotify.com/track/levels-single"]);
+});
+
+test("idFor and albumTrackId find the Spotify IDs used for covers", () => {
+  const t = timeline(history);
+  assert.equal(idFor(t, "Doomsday", "Architects"), "doom");
+  assert.equal(idFor(t, "No Link", "Nobody"), null);
+  assert.equal(idFor(t, "Missing", "Nobody"), null);
+  assert.equal(albumTrackId(t, t.albumNames.indexOf("Levels")), "levels-single");
+  assert.equal(albumTrackId(t, 999), null);
 });
 
 test("topSongs ranks by plays, counting a song on several albums once", () => {
