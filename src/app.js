@@ -65,9 +65,49 @@
     });
   }
 
+  // The worker stays alive after loading: it keeps the parsed history, so a new year range only re-aggregates.
+  let years = [];
+
+  function rangeLabel(from, to) {
+    const all = from === years[0] && to === years[years.length - 1];
+    return `${from === to ? from : `${from}–${to}`}${all ? " · all time" : ""}`;
+  }
+
+  function setupYearSlider() {
+    const fromInput = $("rangeFrom"), toInput = $("rangeTo");
+    const min = years[0], max = years[years.length - 1];
+    for (const input of [fromInput, toInput]) { input.min = min; input.max = max; input.step = 1; }
+    fromInput.value = min;
+    toInput.value = max;
+    $("yearRange").hidden = min === max;
+
+    const paint = () => {
+      const from = Number(fromInput.value), to = Number(toInput.value), span = Math.max(max - min, 1);
+      $("rangeTrack").style.setProperty("--a", `${(from - min) / span * 100}%`);
+      $("rangeTrack").style.setProperty("--b", `${(to - min) / span * 100}%`);
+      $("rangeLabel").textContent = rangeLabel(from, to);
+      $("rangeAll").hidden = from === min && to === max;
+    };
+    // The handles cannot cross: dragging one past the other stops at it.
+    fromInput.oninput = () => { if (Number(fromInput.value) > Number(toInput.value)) fromInput.value = toInput.value; paint(); };
+    toInput.oninput = () => { if (Number(toInput.value) < Number(fromInput.value)) toInput.value = fromInput.value; paint(); };
+    const apply = () => requestRange(Number(fromInput.value), Number(toInput.value));
+    fromInput.onchange = apply;
+    toInput.onchange = apply;
+    $("rangeAll").onclick = () => { fromInput.value = min; toInput.value = max; paint(); apply(); };
+    paint();
+  }
+
+  function requestRange(fromYear, toYear) {
+    $("result").classList.add("updating");
+    $("rangeStatus").textContent = "Updating...";
+    worker.postMessage({ type: "range", fromYear, toYear });
+  }
+
   function analyzeFile(file) {
     if (!file) return;
     if (worker) worker.terminate();
+    let firstLoad = true;
     $("progress").hidden = false;
     $("bar").style.width = "0%";
     setStatus("Unzipping...");
@@ -77,17 +117,30 @@
         $("bar").style.width = `${data.done / data.total * 100}%`;
         setStatus(`Reading file ${data.done} of ${data.total}...`);
       } else if (data.type === "done") {
-        worker.terminate();
         stats = data.stats;
         timeline = data.timeline;
-        show();
-        $("upload").hidden = true;
-        $("result").hidden = false;
-        window.scrollTo(0, 0);
+        $("result").classList.remove("updating");
+        $("rangeStatus").textContent = "";
+        if (firstLoad) {
+          firstLoad = false;
+          years = data.years;
+          setupYearSlider();
+          show();
+          $("upload").hidden = true;
+          $("result").hidden = false;
+          window.scrollTo(0, 0);
+        } else {
+          show();
+        }
       } else if (data.type === "error") {
-        worker.terminate();
-        $("progress").hidden = true;
-        setStatus(data.message, true);
+        if (firstLoad) {
+          worker.terminate();
+          $("progress").hidden = true;
+          setStatus(data.message, true);
+        } else {
+          $("result").classList.remove("updating");
+          $("rangeStatus").textContent = data.message;
+        }
       }
     };
     worker.postMessage(file);
@@ -174,6 +227,7 @@
   });
 
   $("again").addEventListener("click", () => {
+    if (worker) { worker.terminate(); worker = null; }
     input.value = "";
     $("progress").hidden = true;
     setStatus("");

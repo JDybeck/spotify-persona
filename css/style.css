@@ -225,6 +225,25 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .poster .tier button:hover { text-decoration: underline; text-decoration-thickness: 2px; }
 .poster .tier button:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
 
+/* Year range: a sticky bar with two range inputs stacked on one track. Only the thumbs take
+   pointer events, so both handles stay draggable. --a and --b mark the selected stretch. */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--night); }
+.year-range { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-block: 12px; margin-block: -12px; background: color-mix(in srgb, var(--night) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
+.range-label { font-family: var(--mono); font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; min-width: 11ch; }
+.dual { position: relative; flex: 1 1 200px; min-width: 0; height: 28px; --a: 0%; --b: 100%; }
+.dual::before, .dual::after { content: ""; position: absolute; top: 12px; height: 4px; border-radius: 2px; }
+.dual::before { left: 0; right: 0; background: var(--stage); }
+.dual::after { left: var(--a); right: calc(100% - var(--b)); background: var(--sunset); }
+.dual input { position: absolute; inset: 0; width: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
+.dual input::-webkit-slider-runnable-track { background: none; }
+.dual input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); border: 3px solid var(--sunset); cursor: grab; }
+.dual input::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: var(--ink); border: 3px solid var(--sunset); cursor: grab; }
+.dual input::-moz-range-track { background: none; }
+.dual input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--ink); outline-offset: 2px; }
+.dual input:focus-visible::-moz-range-thumb { outline: 2px solid var(--ink); outline-offset: 2px; }
+.range-status { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+#result.updating > :not(.year-range) { opacity: .45; transition: opacity .2s; pointer-events: none; }
+
 /* Cover wall: two rows drifting in opposite directions. Each row holds its covers twice, so moving
    it by half its width loops seamlessly. Spacing uses margins, not gap, to keep both halves equal. */
 .cover-wall { display: grid; gap: 10px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }

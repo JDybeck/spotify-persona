@@ -33,7 +33,9 @@
         skipped: raw.skipped === true || raw.reason_end === "fwdbtn",
         shuffle: raw.shuffle === true,
         incognito: raw.incognito_mode === true,
-        country: raw.conn_country && raw.conn_country !== "ZZ" ? raw.conn_country : null
+        country: raw.conn_country && raw.conn_country !== "ZZ" ? raw.conn_country : null,
+        platform: raw.platform || null,
+        reasonStart: raw.reason_start || null
       };
       if (raw.episode_show_name) return { ...base, kind: "podcast", show: raw.episode_show_name };
       if (raw.master_metadata_album_artist_name && raw.master_metadata_track_name) {
@@ -48,7 +50,10 @@
     }
     if (raw.endTime !== undefined) {
       // Basic format timestamps are UTC without a zone marker: "2024-01-31 18:05".
-      const base = { date: new Date(raw.endTime.replace(" ", "T") + "Z"), ms: raw.msPlayed || 0, skipped: null, shuffle: null, incognito: null, country: null };
+      const base = {
+        date: new Date(raw.endTime.replace(" ", "T") + "Z"), ms: raw.msPlayed || 0,
+        skipped: null, shuffle: null, incognito: null, country: null, platform: null, reasonStart: null
+      };
       if (raw.podcastName) return { ...base, kind: "podcast", show: raw.podcastName };
       if (raw.artistName && raw.trackName && raw.artistName !== "Unknown Artist") {
         return { ...base, kind: "music", artist: raw.artistName, track: raw.trackName, album: null, trackId: null };
@@ -185,7 +190,10 @@
 
     function addRecord(raw) {
       const r = normalize(raw);
-      if (!r || isNaN(r.date)) return;
+      if (r && !isNaN(r.date)) addNormalized(r);
+    }
+
+    function addNormalized(r) {
       if (r.kind === "podcast") { podcastMs += r.ms; add(showMs, r.show, r.ms); return; }
 
       const d = r.date, year = d.getFullYear(), key = trackKey(r.track, r.artist);
@@ -333,7 +341,7 @@
       };
     }
 
-    return { addRecord, finish, timeline: timeline.build };
+    return { addRecord, addNormalized, finish, timeline: timeline.build };
   }
 
   return { createAggregator, normalize, isHistoryFile, dayNumber, calendarOf, MIN_PLAY_MS, MIN_ARTIST_STARTS_FOR_SKIPS, MIN_PROFILE_PLAYS };
