@@ -163,33 +163,86 @@
   // The worker stays alive after loading: it keeps the parsed history, so a new year range only re-aggregates.
   let years = [];
 
-  function rangeLabel(from, to) {
-    const all = from === years[0] && to === years[years.length - 1];
-    return `${from === to ? from : `${from}–${to}`}${all ? " · all time" : ""}`;
-  }
-
-  function setupYearSlider() {
-    const fromInput = $("rangeFrom"), toInput = $("rangeTo");
+  /**
+   * Year ticker: one chip per year from the first stream to the last. Tap a year to pick it alone, then
+   * tap another to stretch to a range; tapping the lone picked year again goes back to all time. With a
+   * mouse you can also drag across years. Arrow keys move between chips, Shift+arrow stretches the range.
+   */
+  function setupYearTicker() {
     const min = years[0], max = years[years.length - 1];
-    for (const input of [fromInput, toInput]) { input.min = min; input.max = max; input.step = 1; }
-    fromInput.value = min;
-    toInput.value = max;
-    $("yearRange").hidden = min === max;
+    const box = $("tickerYears"), allButton = $("rangeAll");
+    let from = min, to = max, anchor = null, drag = null, skipClick = false;
+    currentRange = { fromYear: min, toYear: max };
+    $("yearTicker").hidden = min === max;
+
+    const buttons = [];
+    for (let year = min; year <= max; year++) {
+      const b = Object.assign(document.createElement("button"), { type: "button", textContent: `'${String(year).slice(2)}`, title: String(year) });
+      b.dataset.year = year;
+      b.setAttribute("aria-label", String(year));
+      buttons.push(b);
+    }
+    box.replaceChildren(...buttons);
+    const yearOf = el => Number(el?.closest?.("#tickerYears button")?.dataset.year) || null;
 
     const paint = () => {
-      const from = Number(fromInput.value), to = Number(toInput.value), span = Math.max(max - min, 1);
-      $("rangeTrack").style.setProperty("--a", `${(from - min) / span * 100}%`);
-      $("rangeTrack").style.setProperty("--b", `${(to - min) / span * 100}%`);
-      $("rangeLabel").textContent = rangeLabel(from, to);
-      $("rangeAll").hidden = from === min && to === max;
+      const all = from === min && to === max;
+      allButton.setAttribute("aria-pressed", String(all));
+      for (const b of buttons) {
+        const year = Number(b.dataset.year), on = !all && year >= from && year <= to;
+        b.classList.toggle("in", on);
+        b.classList.toggle("first", on && year === from);
+        b.classList.toggle("last", on && year === to);
+        b.setAttribute("aria-pressed", String(on));
+      }
+      // Keeps the picked stretch in view without moving the page.
+      const first = buttons[from - min];
+      if (!all && (first.offsetLeft < box.scrollLeft || first.offsetLeft + first.offsetWidth > box.scrollLeft + box.clientWidth)) {
+        box.scrollLeft = first.offsetLeft - box.clientWidth / 3;
+      }
     };
-    // The handles cannot cross: dragging one past the other stops at it.
-    fromInput.oninput = () => { if (Number(fromInput.value) > Number(toInput.value)) fromInput.value = toInput.value; paint(); };
-    toInput.oninput = () => { if (Number(toInput.value) < Number(fromInput.value)) toInput.value = fromInput.value; paint(); };
-    const apply = () => requestRange(Number(fromInput.value), Number(toInput.value));
-    fromInput.onchange = apply;
-    toInput.onchange = apply;
-    $("rangeAll").onclick = () => { fromInput.value = min; toInput.value = max; paint(); apply(); };
+    const select = (a, b, { apply = true } = {}) => {
+      [from, to] = [Math.min(a, b), Math.max(a, b)];
+      paint();
+      if (apply && (from !== currentRange.fromYear || to !== currentRange.toYear)) requestRange(from, to);
+    };
+
+    allButton.onclick = () => { anchor = null; select(min, max); };
+    box.onclick = e => {
+      const year = yearOf(e.target);
+      if (!year) return;
+      if (skipClick) { skipClick = false; return; }
+      if (anchor !== null && from === to && from === anchor && year !== anchor) select(anchor, year);
+      else if (from === to && year === from) { anchor = null; select(min, max); }
+      else { anchor = year; select(year, year); }
+    };
+    box.onpointerdown = e => {
+      if (e.pointerType !== "mouse" || e.button !== 0 || !yearOf(e.target)) return;
+      drag = { start: yearOf(e.target), moved: false };
+      // Listens on the window, so letting go outside the ticker still ends the drag.
+      window.addEventListener("pointerup", () => {
+        if (drag.moved) { skipClick = true; anchor = null; select(from, to); }
+        drag = null;
+      }, { once: true });
+    };
+    box.onpointerover = e => {
+      const year = yearOf(e.target);
+      if (!drag || !year || (year === drag.start && !drag.moved)) return;
+      drag.moved = true;
+      select(drag.start, year, { apply: false });
+    };
+    box.onkeydown = e => {
+      const year = yearOf(e.target);
+      if (!year || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+      const next = buttons[year - min + (e.key === "ArrowLeft" ? -1 : 1)];
+      if (!next) return;
+      e.preventDefault();
+      next.focus();
+      if (e.shiftKey) {
+        if (anchor === null) anchor = year;
+        select(anchor, Number(next.dataset.year));
+      }
+    };
     paint();
   }
 
@@ -251,7 +304,7 @@
         if (firstLoad) {
           firstLoad = false;
           years = data.years;
-          setupYearSlider();
+          setupYearTicker();
           show();
           stopLoadingCovers();
           $("upload").hidden = true;
