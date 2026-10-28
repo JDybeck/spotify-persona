@@ -438,23 +438,29 @@
     return t ? [el("div", { class: "with-thumb" }, [t, el("div", { class: "with-thumb-text" }, nodes)])] : nodes;
   }
 
+  // Flight lanes for the poster covers: height (%), size (% of poster height), resting x for reduced motion (%), seconds per pass.
+  const POSTER_LANES = [[4, 34, 6, 38], [56, 30, 72, 44], [30, 26, 38, 50], [66, 24, 18, 41], [10, 22, 58, 47]];
+
   /**
-   * A faded strip of the headliners' covers (each artist's most played song) behind the lineup, or ""
-   * when covers are off. Each slice fades in once its cover arrives, and drops out if there is none.
+   * The headliners' covers (each artist's most played song) drifting across behind the lineup, or ""
+   * when covers are off. Each one fades in once its cover arrives, and drops out if there is none.
    */
   function posterArt(artists, timeline) {
     if (!coversOn || !coverQueue) return "";
     const playlist = SpotifyPersona.playlist;
-    const slices = artists.map(a => {
+    const covers = artists.map((a, i) => {
       const id = playlist.artistTrackId(timeline, timeline.artistNames.indexOf(a.name));
       if (!id) return null;
-      const img = el("img", { alt: "", referrerpolicy: "no-referrer", decoding: "async" });
+      const [y, size, x, dur] = POSTER_LANES[i % POSTER_LANES.length];
+      // A negative delay starts each cover partway through its pass, so they are spread out from the first frame.
+      const style = `--y:${y}%;--size:${size}cqh;--x:${x}%;--dur:${dur}s;--delay:${-dur * (i / artists.length)}s`;
+      const img = el("img", { alt: "", referrerpolicy: "no-referrer", decoding: "async", style });
       img.addEventListener("load", () => img.classList.add("shown"));
       img.addEventListener("error", () => img.remove());
       coverQueue.get(id).then(url => (url ? (img.src = url) : img.remove()));
       return img;
     }).filter(Boolean);
-    return slices.length ? el("div", { class: "poster-art", "aria-hidden": "true" }, slices) : "";
+    return covers.length ? el("div", { class: "poster-art", "aria-hidden": "true" }, covers) : "";
   }
 
   function coverRow(items, reverse) {
