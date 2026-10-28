@@ -101,6 +101,20 @@ test("tracks skips per song and only ranks artists with enough starts", () => {
   assert.equal(s.skippedTracks[0].skips, 75);
 });
 
+test("skipped tracks report listens and when repeat skipping started, regardless of input order", () => {
+  const agg = createAggregator();
+  agg.addRecord(extended({ ts: "2022-03-10T12:00:00Z", skipped: true }));
+  agg.addRecord(extended({ ts: "2020-01-01T12:00:00Z" }));
+  agg.addRecord(extended({ ts: "2021-06-01T12:00:00Z", skipped: true }));
+  agg.addRecord(extended({ ts: "2021-02-01T12:00:00Z", skipped: true }));
+  agg.addRecord(extended({ ts: "2020-05-01T12:00:00Z" }));
+  agg.addRecord(extended({ ts: "2023-01-01T12:00:00Z", master_metadata_track_name: "Once", skipped: true }));
+  const [song, once] = agg.finish().skippedTracks;
+  assert.deepEqual([song.track, song.skips, song.listens, song.starts], ["Song", 3, 2, 5]);
+  assert.equal(song.skippingSince, "2021-06-01", "the second skip by date, not by input order");
+  assert.equal(once.skippingSince, null, "a single skip is not a habit");
+});
+
 test("basic-format history reports behavior stats as unknown", () => {
   const agg = createAggregator();
   agg.addRecord({ endTime: "2024-01-31 18:05", artistName: "A", trackName: "T", msPlayed: 60000 });

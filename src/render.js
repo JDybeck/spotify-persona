@@ -115,14 +115,19 @@
     if (!stats.hasBehaviorData) return;
     const top = new Set(stats.topTracks.map(t => `${t.track}\u0000${t.artist}`));
     const loveHate = stats.skippedTracks.filter(t => top.has(`${t.track}\u0000${t.artist}`)).length;
-    $("skipNote").textContent = `A skip is any track you jumped past before it ended.` +
+    $("skipNote").textContent = `A skip is any track you jumped past before it ended. "Skipping since" is the day of the second skip, when it became a habit.` +
       (loveHate ? ` ${loveHate} of your most skipped songs are also in your top 50 most played. You love them, just not right now.` : "");
     fill("skipSongs", stats.skippedTracks.slice(0, 10).map(t => {
       const title = el("b", { text: t.track });
       if (top.has(`${t.track}\u0000${t.artist}`)) title.append(el("span", { class: "chip", text: "love-hate" }));
+      const artist = t.skippingSince ? `${t.artist} · skipping since ${prettyDate(t.skippingSince)}` : t.artist;
       return el("li", {}, [
-        el("div", { class: "who" }, withThumb(t, [title, el("span", { text: t.artist })])),
-        el("span", { class: "stat num" }, [el("b", { text: `${fmt(t.skips)} skips` }), el("br"), `${pct(t.rate)} of ${fmt(t.starts)}`])
+        el("div", { class: "who" }, withThumb(t, [title, el("span", { text: artist })])),
+        el("span", { class: "stat num" }, [
+          el("b", { text: `${fmt(t.skips)} skips` }), el("br"),
+          `${fmt(t.listens)} listened`, el("br"),
+          `${pct(t.rate)} of ${fmt(t.starts)}`
+        ])
       ]);
     }));
     $("skipArtistsBlock").hidden = stats.skippedArtists.length === 0;

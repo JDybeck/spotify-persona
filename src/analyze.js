@@ -179,6 +179,8 @@
     const artistMs = new Map(), artistPlays = new Map(), artistYears = new Map();
     const artistStarts = new Map(), artistSkips = new Map();
     const trackMs = new Map(), trackPlays = new Map(), trackStarts = new Map(), trackSkips = new Map();
+    // The two earliest skips per track, so we know when skipping became a habit (the second one).
+    const trackSkipDates = new Map();
     const yearMs = new Map(), yearArtistMs = new Map(), yearTrackPlays = new Map(), yearCountries = new Map();
     const yearStreams = new Map(), yearPlays = new Map(), yearSkips = new Map();
     const trackNight = new Map(), trackMorning = new Map();
@@ -222,7 +224,13 @@
 
       if (r.skipped !== null) {
         hasBehaviorData = true;
-        if (r.skipped) { skipped++; add(trackSkips, key, 1); add(artistSkips, r.artist, 1); add(yearSkips, year, 1); }
+        if (r.skipped) {
+          skipped++;
+          add(trackSkips, key, 1);
+          add(artistSkips, r.artist, 1);
+          add(yearSkips, year, 1);
+          rememberSkipDate(key, d);
+        }
         if (r.shuffle) shuffled++;
         if (r.incognito) incognito++;
       }
@@ -242,6 +250,15 @@
         add(yearTrackPlays.get(year), key, 1);
         add(dayTrackPlays, `${day}\u0001${key}`, 1);
       }
+    }
+
+    /** Keeps the two earliest skip dates per track. Records can arrive in any order, so compare instead of append. */
+    function rememberSkipDate(key, d) {
+      const dates = trackSkipDates.get(key);
+      if (!dates) { trackSkipDates.set(key, [d]); return; }
+      dates.push(d);
+      dates.sort((a, b) => a - b);
+      if (dates.length > 2) dates.length = 2;
     }
 
     /** How each frequently played song was listened to: when, over how many years, and how bursty. */
@@ -331,7 +348,17 @@
         topTracks: topEntries(trackPlays, 50).map(([key, n]) => ({ ...track(key), plays: n, hours: hours(trackMs.get(key)) })),
         recentArtists: topEntries(recentArtistMs, 15).map(([name, ms]) => ({ name, hours: hours(ms) })),
         obsessions: topEntries(dayTrackPlays, 5).map(([k, n]) => { const [day, key] = k.split("\u0001"); return { day, ...track(key), plays: n }; }),
-        skippedTracks: topEntries(trackSkips, 15).map(([key, n]) => ({ ...track(key), skips: n, starts: trackStarts.get(key), rate: n / trackStarts.get(key) })),
+        skippedTracks: topEntries(trackSkips, 15).map(([key, n]) => {
+          const starts = trackStarts.get(key), repeatSkip = trackSkipDates.get(key)[1];
+          return {
+            ...track(key),
+            skips: n,
+            starts,
+            listens: starts - n,
+            rate: n / starts,
+            skippingSince: repeatSkip ? dayKey(repeatSkip) : null
+          };
+        }),
         skippedArtists: [...artistStarts.entries()]
           .filter(([, starts]) => starts >= MIN_ARTIST_STARTS_FOR_SKIPS)
           .map(([name, starts]) => ({ name, starts, skips: artistSkips.get(name) || 0, rate: (artistSkips.get(name) || 0) / starts }))
