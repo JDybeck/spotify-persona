@@ -49,14 +49,6 @@
 
 <main class="wrap" id="result" hidden>
   <div class="year-range" id="yearRange">
-    <span class="range-label num" id="rangeLabel"></span>
-    <div class="dual" id="rangeTrack">
-      <input type="range" id="rangeFrom" aria-label="From year">
-      <input type="range" id="rangeTo" aria-label="To year">
-    </div>
-    <button type="button" class="again" id="rangeAll" hidden>All time</button>
-    <span class="range-status" id="rangeStatus" role="status" aria-live="polite"></span>
-    <div class="hidden-list" id="hiddenArtists" hidden></div>
     <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
       <button type="button" role="tab" data-tab="you">You</button>
       <button type="button" role="tab" data-tab="music">Music</button>
@@ -64,6 +56,14 @@
       <button type="button" role="tab" data-tab="habits">Habits</button>
       <button type="button" role="tab" data-tab="life">Life</button>
     </nav>
+    <span class="range-label num" id="rangeLabel"></span>
+    <div class="dual" id="rangeTrack">
+      <input type="range" id="rangeFrom" aria-label="From year">
+      <input type="range" id="rangeTo" aria-label="To year">
+    </div>
+    <button type="button" class="range-all" id="rangeAll" hidden>All time</button>
+    <span class="range-status" id="rangeStatus" role="status" aria-live="polite"></span>
+    <div class="hidden-list" id="hiddenArtists" hidden></div>
   </div>
 
   <section data-tab="you" class="hero">

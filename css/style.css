@@ -253,16 +253,23 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 /* Year range: a sticky bar with two range inputs stacked on one track. Only the thumbs take
    pointer events, so both handles stay draggable. --a and --b mark the selected stretch. */
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--night); }
-.year-range { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-block: 12px; margin-block: -12px; background: color-mix(in srgb, var(--night) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
-.range-label { font-family: var(--mono); font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; min-width: 11ch; }
-.dual { position: relative; flex: 1 1 200px; min-width: 0; height: 28px; --a: 0%; --b: 100%; }
-.dual::before, .dual::after { content: ""; position: absolute; top: 12px; height: 4px; border-radius: 2px; }
-.dual::before { left: 0; right: 0; background: var(--stage); }
+/* Sticky top bar: section tabs on the left, the year slider on the right. Wraps to two rows on narrow screens. */
+.year-range { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding-block: 10px; margin-block: -10px; isolation: isolate; }
+/* Full-bleed background, so the bar reads as a header strip rather than a box inside the content column. */
+.year-range::before { content: ""; position: absolute; inset: 0 calc(50% - 50vw); z-index: -1; background: color-mix(in srgb, var(--night) 85%, transparent); backdrop-filter: blur(12px); box-shadow: 0 10px 18px -14px rgb(0 0 0 / .8); }
+.range-label { margin-left: auto; font-family: var(--mono); font-size: .78rem; color: var(--muted); white-space: nowrap; }
+.dual { position: relative; flex: 0 1 280px; min-width: 120px; height: 24px; --a: 0%; --b: 100%; }
+.dual::before, .dual::after { content: ""; position: absolute; top: 11px; height: 2px; border-radius: 1px; }
+.dual::before { left: 0; right: 0; background: var(--rule); }
 .dual::after { left: var(--a); right: calc(100% - var(--b)); background: var(--sunset); }
 .dual input { position: absolute; inset: 0; width: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
 .dual input::-webkit-slider-runnable-track { background: none; }
-.dual input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); border: 3px solid var(--sunset); cursor: grab; }
-.dual input::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: var(--ink); border: 3px solid var(--sunset); cursor: grab; }
+.dual input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: var(--sunset); border: 0; box-shadow: 0 0 0 3px var(--night); cursor: grab; transition: transform .15s; }
+.dual input::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.dual input::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: var(--sunset); border: 0; box-shadow: 0 0 0 3px var(--night); cursor: grab; }
+.range-all { font: 500 .72rem var(--mono); letter-spacing: .04em; color: var(--muted); background: none; border: 1px solid var(--rule); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.range-all:hover { color: var(--ink); border-color: var(--sunset); }
+.range-all:focus-visible { outline: 2px solid var(--sunset); outline-offset: 2px; }
 .dual input::-moz-range-track { background: none; }
 .dual input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--ink); outline-offset: 2px; }
 .dual input:focus-visible::-moz-range-thumb { outline: 2px solid var(--ink); outline-offset: 2px; }
@@ -296,11 +303,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .hidden-list button:focus-visible { outline: 2px solid var(--c6); outline-offset: 2px; }
 
 /* Tabs live in the sticky bar, under the year slider. On narrow screens they scroll sideways. */
-.tabs { flex: 1 1 100%; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.tabs { flex: 0 1 auto; min-width: 0; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
-.tabs button { font: 800 1.05rem var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: none; border: 0; border-bottom: 3px solid transparent; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.tabs button { font: 700 .95rem var(--display); letter-spacing: .03em; color: var(--muted); background: none; border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer; white-space: nowrap; transition: color .15s, background-color .15s; }
 .tabs button:hover { color: var(--ink); }
-.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--tab-color, var(--c1)); }
+.tabs button[aria-selected="true"] { color: var(--ink); background: color-mix(in srgb, var(--tab-color, var(--c1)) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tab-color, var(--c1)) 45%, transparent); }
+@media (max-width: 560px) { .tabs { flex-basis: 100%; } .range-label { margin-left: 0; } .dual { flex: 1 1 120px; } }
 .tabs button:focus-visible { outline: 2px solid var(--c1); outline-offset: -2px; }
 .tabs button:nth-child(2) { --tab-color: var(--c2); }
 .tabs button:nth-child(3) { --tab-color: var(--c3); }
