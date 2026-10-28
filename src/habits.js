@@ -105,7 +105,15 @@
     const trackYears = new Map();
     const artistSeasons = new Map();
     const christmasByYear = new Map(), christmasSongs = new Map();
+    // A history has only a handful of platform strings and repeats every song, so the regex work is done once each.
+    const platformInfo = new Map(), isChristmas = new Map();
     let behavior = false;
+
+    function deviceOf(platform) {
+      let info = platformInfo.get(platform);
+      if (!info) platformInfo.set(platform, info = { category: deviceCategory(platform), name: deviceName(platform) });
+      return info;
+    }
 
     function idOf(track, artist) {
       const k = `${track}\u0000${artist}`;
@@ -142,10 +150,10 @@
 
       if (r.platform) {
         if (!deviceMsByYear.has(year)) deviceMsByYear.set(year, new Map());
-        inc(deviceMsByYear.get(year), deviceCategory(r.platform), r.ms);
-        const name = deviceName(r.platform);
+        const { category, name } = deviceOf(r.platform);
+        inc(deviceMsByYear.get(year), category, r.ms);
         if (name) {
-          const dn = deviceNames.get(name) || { ms: 0, first: year, last: year, category: deviceCategory(r.platform) };
+          const dn = deviceNames.get(name) || { ms: 0, first: year, last: year, category };
           dn.ms += r.ms;
           dn.first = Math.min(dn.first, year);
           dn.last = Math.max(dn.last, year);
@@ -159,7 +167,8 @@
       const seasons = artistSeasons.get(r.artist) || [0, 0, 0, 0];
       seasons[seasonOf(d.getMonth())]++;
       artistSeasons.set(r.artist, seasons);
-      if (CHRISTMAS.test(r.track)) {
+      if (!isChristmas.has(id)) isChristmas.set(id, CHRISTMAS.test(r.track));
+      if (isChristmas.get(id)) {
         const c = christmasByYear.get(year) || { plays: 0, first: null, outOfSeason: 0 };
         c.plays++;
         const md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

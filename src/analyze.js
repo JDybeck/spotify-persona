@@ -215,7 +215,8 @@
       add(monthArtistMs.get(month), r.artist, r.ms);
       hourMs[d.getHours()] += r.ms;
       weekdayMs[(d.getDay() + 6) % 7] += r.ms;
-      add(dayMs, dayKey(d), r.ms);
+      const day = dayKey(d);
+      add(dayMs, day, r.ms);
       add(trackStarts, key, 1);
       add(artistStarts, r.artist, 1);
 
@@ -239,7 +240,7 @@
         artistYears.get(r.artist).add(year);
         if (!yearTrackPlays.has(year)) yearTrackPlays.set(year, new Map());
         add(yearTrackPlays.get(year), key, 1);
-        add(dayTrackPlays, `${dayKey(d)}\u0001${key}`, 1);
+        add(dayTrackPlays, `${day}\u0001${key}`, 1);
       }
     }
 

@@ -387,12 +387,8 @@
   // Cover lookups are kept per timeline, so re-rendering (a new chapter, a name change) never refetches.
   const coverLoads = new WeakMap();
 
-  // One queue for every cover on the page (wall, palette and song thumbnails), created on first use.
+  // The page's one cover queue (wall, palette and song thumbnails), handed in by the app on every render.
   let coverQueue = null;
-  function coverQueueFor(coverCache) {
-    if (!coverQueue) coverQueue = SpotifyPersona.covers.createCoverQueue({ fetchFn: (...args) => fetch(...args), cache: coverCache });
-    return coverQueue;
-  }
 
   // Whether covers are on for this render; song thumbnails only appear when they are.
   let coversOn = false;
@@ -447,7 +443,7 @@
       [...items.map(img), ...items.map(img)]);
   }
 
-  function coverWall(timeline, profile, coverCache, onToggleCovers) {
+  function coverWall(timeline, profile, onToggleCovers) {
     const api = SpotifyPersona.covers;
     const albums = api.pickAlbums(timeline);
     const yearAlbums = api.pickYearAlbums(timeline);
@@ -464,13 +460,12 @@
     }
 
     // Top albums for the wall, plus each year's top albums for the colour of each year, looked up together.
-    const queue = coverQueueFor(coverCache);
     let load = coverLoads.get(timeline);
     if (!load) {
       $("coverNote").textContent = "Fetching covers from Spotify...";
       const seen = new Set(albums.map(a => a.trackId));
       const extra = yearAlbums.flatMap(y => y.albums).filter(a => !seen.has(a.trackId) && seen.add(a.trackId));
-      load = api.loadCovers([...albums, ...extra], { queue });
+      load = api.loadCovers([...albums, ...extra], { queue: coverQueue });
       coverLoads.set(timeline, load);
     }
     load.then(found => {
@@ -921,15 +916,15 @@
   // Set on every render, so detail views opened later call the current handler.
   let onHideArtist = () => {};
 
-  function render({ stats, persona, timeline, profile, coverCache, onRemoveChapter = () => {}, onToggleCovers = () => {}, onHideArtist: hideHandler = () => {} }) {
+  function render({ stats, persona, timeline, profile, coverQueue: queue, onRemoveChapter = () => {}, onToggleCovers = () => {}, onHideArtist: hideHandler = () => {} }) {
     onHideArtist = hideHandler;
     currentTimeline = timeline;
+    coverQueue = queue;
     coversOn = profile.covers && SpotifyPersona.playlist.available(timeline);
-    if (coversOn) coverQueueFor(coverCache);
     if (!coversOn) setGlow(null);
     greeting(profile);
     hero(stats, persona);
-    coverWall(timeline, profile, coverCache, onToggleCovers);
+    coverWall(timeline, profile, onToggleCovers);
     traits(persona);
     lineup(stats, timeline);
     genres(persona);

@@ -15,16 +15,26 @@
     try {
       const saved = JSON.parse(localStorage.getItem(PROFILE_KEY));
       if (saved) {
+        // Covers are on unless the user turned them off. Older profiles saved covers: false as a
+        // default, so only a choice recorded with coversChosen counts.
+        const coversChosen = saved.coversChosen === true;
         return {
           name: saved.name || "",
           birth: saved.birth || null,
           chapters: Array.isArray(saved.chapters) ? saved.chapters : [],
-          covers: saved.covers === true,
+          covers: coversChosen ? saved.covers === true : true,
+          coversChosen,
           hiddenArtists: Array.isArray(saved.hiddenArtists) ? saved.hiddenArtists : []
         };
       }
     } catch { /* fall through */ }
-    return { name: "", birth: null, chapters: [], covers: false, hiddenArtists: [] };
+    return { name: "", birth: null, chapters: [], covers: true, coversChosen: false, hiddenArtists: [] };
+  }
+
+  function setCovers(on) {
+    profile.covers = on;
+    profile.coversChosen = true;
+    saveProfile();
   }
 
   function saveProfile() {
@@ -43,6 +53,61 @@
     };
   })();
 
+  // One queue for every cover on the page: the loading screen, the cover wall, the palette and song thumbnails.
+  const coverQueue = SpotifyPersona.covers.createCoverQueue({ fetchFn: (...args) => fetch(...args), cache: coverCache });
+
+  // While the export loads, the covers of the biggest albums found so far pop in under the progress bar.
+  // Once the strip is full, covers that did not fit keep swapping in, so it flashes by until the results show.
+  const LOADING_COVERS = 24;
+  const LOADING_SWAP_MS = 350;
+  let loadingCovers = null;
+
+  function startLoadingCovers() {
+    const box = $("loadCovers");
+    box.replaceChildren();
+    box.hidden = !profile.covers;
+    const asked = new Set();
+    const spare = [];
+
+    function coverImg(a, url) {
+      const img = Object.assign(document.createElement("img"), { src: url, alt: "", title: `${a.album} · ${a.artist}`, decoding: "async" });
+      img.referrerPolicy = "no-referrer";
+      img.addEventListener("error", () => img.remove());
+      return img;
+    }
+
+    const swap = setInterval(() => {
+      if (spare.length === 0 || box.children.length < LOADING_COVERS) return;
+      const old = box.children[Math.floor(Math.random() * box.children.length)];
+      old.replaceWith(spare.shift());
+      spare.push(old);
+    }, LOADING_SWAP_MS);
+
+    return {
+      peek(albums) {
+        if (!profile.covers) return;
+        for (const a of albums) {
+          if (asked.has(a.trackId) || asked.size >= LOADING_COVERS * 2) continue;
+          asked.add(a.trackId);
+          coverQueue.get(a.trackId).then(url => {
+            if (!url || loadingCovers !== this) return;
+            const img = coverImg(a, url);
+            if (box.children.length < LOADING_COVERS) box.append(img);
+            else spare.push(img);
+          });
+        }
+      },
+      stop() { clearInterval(swap); }
+    };
+  }
+
+  function stopLoadingCovers() {
+    if (loadingCovers) loadingCovers.stop();
+    loadingCovers = null;
+    $("loadCovers").hidden = true;
+    $("loadCovers").replaceChildren();
+  }
+
   function validYear(value) {
     const year = Number(value);
     return Number.isInteger(year) && year >= MIN_YEAR && year <= new Date().getFullYear() ? year : null;
@@ -59,11 +124,11 @@
       timeline,
       profile,
       persona: SpotifyPersona.persona.buildPersona(stats, profile),
-      coverCache,
+      coverQueue,
       onHideArtist: artist => setHidden(artist, true),
       onToggleCovers: () => {
-        profile.covers = !profile.covers;
-        saveProfile();
+        setCovers(!profile.covers);
+        $("coversCheck").checked = profile.covers;
         show();
       },
       onRemoveChapter: index => {
@@ -167,11 +232,17 @@
     $("progress").hidden = false;
     $("bar").style.width = "0%";
     setStatus("Unzipping...");
+    stopLoadingCovers();
+    loadingCovers = startLoadingCovers();
+    // Brings the progress bar and the covers below it into view; they sit under the fold on most screens.
+    drop.scrollIntoView({ block: "start" });
     worker = new Worker("src/worker.js");
     worker.onmessage = ({ data }) => {
       if (data.type === "progress") {
         $("bar").style.width = `${data.done / data.total * 100}%`;
-        setStatus(`Reading file ${data.done} of ${data.total}...`);
+        setStatus(data.phase === "analyze" ? "Working out your persona..." : `Reading file ${data.done} of ${data.total}...`);
+      } else if (data.type === "peek") {
+        if (loadingCovers) loadingCovers.peek(data.albums);
       } else if (data.type === "done") {
         stats = data.stats;
         timeline = data.timeline;
@@ -182,6 +253,7 @@
           years = data.years;
           setupYearSlider();
           show();
+          stopLoadingCovers();
           $("upload").hidden = true;
           $("result").hidden = false;
           window.scrollTo(0, 0);
@@ -191,6 +263,7 @@
       } else if (data.type === "error") {
         if (firstLoad) {
           worker.terminate();
+          stopLoadingCovers();
           $("progress").hidden = true;
           setStatus(data.message, true);
         } else {
@@ -199,7 +272,7 @@
         }
       }
     };
-    worker.postMessage({ type: "load", file, hiddenArtists: profile.hiddenArtists });
+    worker.postMessage({ type: "load", file, hiddenArtists: profile.hiddenArtists, peek: profile.covers });
   }
 
   function setStatus(text, isError = false) {
@@ -233,6 +306,12 @@
     profile.name = $("userName").value.trim().slice(0, 40);
     saveProfile();
     if (stats) show();
+  });
+
+  $("coversCheck").checked = profile.covers;
+  $("coversCheck").addEventListener("change", () => {
+    setCovers($("coversCheck").checked);
+    $("loadCovers").hidden = !profile.covers || !loadingCovers;
   });
 
   input.addEventListener("change", () => analyzeFile(input.files[0]));

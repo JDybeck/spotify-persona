@@ -57,6 +57,13 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .progress i { display: block; height: 100%; width: 0; background: var(--sunset); transition: width .2s; }
 #status { font-family: var(--mono); font-size: .85rem; color: var(--muted); margin: 0; min-height: 1.5em; }
 #status.error { color: var(--error); }
+.covers-check { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: .9rem; cursor: pointer; }
+.covers-check input { accent-color: var(--sunset); }
+.covers-check span { color: var(--muted); font-size: .8rem; }
+/* Covers of the biggest albums found so far, popping in while the export loads. */
+.load-covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+.load-covers img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; display: block; background: var(--stage); animation: cover-pop .35s ease-out; }
+@keyframes cover-pop { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }
 .steps { margin: 0; padding-left: 1.3em; color: var(--muted); display: grid; gap: 6px; max-width: 62ch; }
 .steps b { color: var(--ink); font-weight: 600; }
 /* Windows has no flag emoji, so flags use Noto Color Emoji; Google Fonts only sends the glyph ranges a page uses. */
@@ -271,7 +278,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cover-wall:hover .cover-row { animation-play-state: paused; }
 @keyframes cover-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .cover-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--muted); font-size: .85rem; }
-@media (prefers-reduced-motion: reduce) { .cover-row { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cover-row, .load-covers img { animation: none; } }
 
 /* Each visible section gets its own accent (set by script in visible order), so a tab reads as a
    set of posters, not one colour. */

@@ -28,10 +28,10 @@
     const trackInfo = [];
     const time = [], ms = [], year = [], kind = [], ref = [], flags = [], country = [], platform = [], reason = [];
 
-    /** Adds one raw export record. Returns false for records that are neither music nor podcasts. */
+    /** Adds one raw export record and returns it normalized, or null for records that are neither music nor podcasts. */
     function addRaw(raw) {
       const r = normalize(raw);
-      if (!r || isNaN(r.date)) return false;
+      if (!r || isNaN(r.date)) return null;
       let refId;
       if (r.kind === "podcast") {
         refId = shows.id(r.show);
@@ -49,7 +49,7 @@
       country.push(countries.id(r.country));
       platform.push(platforms.id(r.platform));
       reason.push(reasons.id(r.reasonStart));
-      return true;
+      return r;
     }
 
     /**

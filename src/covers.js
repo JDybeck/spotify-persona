@@ -39,6 +39,40 @@
   }
 
   /**
+   * A running tally of album listening fed one normalized stream at a time, so covers can be shown
+   * while the export is still loading. top(n) gives the n biggest albums so far, each with its
+   * most-played track, in the same shape as pickAlbums.
+   */
+  function createAlbumTally() {
+    // Only per-track sums while streaming in, since that runs for every record; albums are grouped in top().
+    const tracks = new Map();
+
+    function add(r) {
+      if (r.kind !== "music" || !r.album || !r.trackId) return;
+      let t = tracks.get(r.trackId);
+      if (!t) tracks.set(r.trackId, t = { album: r.album, artist: r.artist, ms: 0 });
+      t.ms += r.ms;
+    }
+
+    function top(count = DEFAULT_ALBUMS) {
+      const albums = new Map();
+      for (const [trackId, t] of tracks) {
+        const key = `${t.album}\u0000${t.artist}`;
+        let a = albums.get(key);
+        if (!a) albums.set(key, a = { album: t.album, artist: t.artist, ms: 0, trackId, trackMs: 0 });
+        a.ms += t.ms;
+        if (t.ms > a.trackMs) { a.trackMs = t.ms; a.trackId = trackId; }
+      }
+      return [...albums.values()]
+        .sort((a, b) => b.ms - a.ms)
+        .slice(0, count)
+        .map(({ album, artist, trackId }) => ({ album, artist, trackId }));
+    }
+
+    return { add, top };
+  }
+
+  /**
    * Each year's most-listened albums (up to `perYear`) that have a Spotify track ID, biggest first,
    * as { year, albums: [{ album, artist, trackId }] }. The colour of a year is picked among them.
    */
@@ -184,5 +218,5 @@
     return results.filter(Boolean);
   }
 
-  return { pickAlbums, pickYearAlbums, dominantColor, vividness, yearColor, coverUrl, createCoverQueue, loadCovers };
+  return { pickAlbums, createAlbumTally, pickYearAlbums, dominantColor, vividness, yearColor, coverUrl, createCoverQueue, loadCovers };
 });

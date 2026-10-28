@@ -36,7 +36,7 @@ The basic **Account data** export also works if that is what you have, but it on
 - **Nothing is uploaded.** There is no backend. The zip is read in your browser and the results only exist in that tab. Your history itself never leaves the page.
 - **Only listening history is read.** The worker opens files named `Streaming_History_Audio_*.json` or `StreamingHistory*.json` and nothing else. Every other file in the export is never decompressed or parsed.
 - **Payment data is never read or stored.** This is a hard rule: payment, subscription and identity files are excluded, and a test fails if the file filter ever matches them.
-- **Album covers are opt-in.** The export has no images, so "Show my album covers" asks Spotify's public oEmbed endpoint for cover art, using track IDs from your export: your top 40 albums for the cover wall, each year's top albums for the palette, and thumbnails next to songs as they scroll into view. This is the only request that ever leaves the page, it only goes to Spotify, and it only happens after you press the button. The cover URLs are cached in your browser.
+- **Album covers are on by default, and easy to turn off.** The export has no images, so the page asks Spotify's public oEmbed endpoint for cover art, using track IDs from your export: your biggest albums while the zip loads, your top 40 albums for the cover wall, each year's top albums for the palette, and thumbnails next to songs as they scroll into view. This is the only request that ever leaves the page and it only goes to Spotify. Untick "Show album covers" before dropping the zip (or press "Hide album covers" later) and no request is made; the choice is remembered. The cover URLs are cached in your browser.
 - **What is stored.** Only what you choose to type in yourself (a first name for the greeting, birth date and life chapters), kept in your own browser's local storage. Personal details are never read from the export. Clearing site data removes it.
 
 ## Run locally
@@ -58,14 +58,15 @@ Any static file server works, for example `python -m http.server`.
 | `src/store.js` | Compact in-memory copy of every stream, so a year range or hidden artist re-aggregates without re-reading the zip |
 | `src/habits.js` | Sessions, streaks, New Year's songs, who picks the music, devices, comebacks, seasons and Christmas |
 | `src/playlist.js` | Spotify links for any list of songs, and the top songs of any slice of years, months, genre or name |
-| `src/covers.js` | Opt-in album covers for your top albums via Spotify's oEmbed endpoint |
+| `src/covers.js` | Album covers for your top albums via Spotify's oEmbed endpoint, also while the zip is still loading |
 | `src/locale.js` | Guesses the visitor's country from browser settings and shows Spotify's own data-box labels in its language(s) |
 | `src/search.js` | Accent-insensitive search over artists, songs and albums, plus their detail views |
 | `src/moments.js` | On this day, birthday songs, discoveries and yearly artist ranks |
 | `src/explore.js` | Queries the per-hour timeline for any date range and genre |
 | `src/vibes.js` | Song vibes (comfort, after dark, on repeat, phase, skip bait) from listening patterns, and energy from genre |
 | `src/persona.js` | Archetype, traits, genre mix, eras and receipts derived from the stats |
-| `src/worker.js` | Unzips with [JSZip](https://stuk.github.io/jszip/) and runs the analysis off the main thread |
+| `src/unzip.js` | Small zip reader that inflates with the browser's native `DecompressionStream` |
+| `src/worker.js` | Unzips (natively, or with [JSZip](https://stuk.github.io/jszip/) as a fallback) and runs the analysis off the main thread |
 | `src/render.js` | Draws the results page |
 | `src/app.js` | Upload handling and progress |
 

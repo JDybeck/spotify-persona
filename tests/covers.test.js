@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createAggregator } = require("../src/analyze.js");
-const { pickAlbums, pickYearAlbums, dominantColor, vividness, yearColor, coverUrl, createCoverQueue, loadCovers } = require("../src/covers.js");
+const { createAggregator, normalize } = require("../src/analyze.js");
+const { pickAlbums, createAlbumTally, pickYearAlbums, dominantColor, vividness, yearColor, coverUrl, createCoverQueue, loadCovers } = require("../src/covers.js");
 
 // RGBA pixel data from [count, [r, g, b]] runs.
 function pixels(...runs) {
@@ -46,6 +46,18 @@ test("pickAlbums ranks albums by time and uses each album's most-played track", 
     { album: "Levels", artist: "Avicii", trackId: "levels" }
   ], "albums without any Spotify track ID are skipped");
   assert.equal(pickAlbums(timeline(), 1).length, 1);
+});
+
+test("createAlbumTally ranks albums like pickAlbums while streams come in", () => {
+  const tally = createAlbumTally();
+  const feed = rec => tally.add(normalize(rec));
+  for (let i = 0; i < 3; i++) feed(record("Architects", "Doomsday", "Holy Hell", "doom"));
+  feed(record("Architects", "Gravedigger", "Holy Hell", "grave"));
+  for (let i = 0; i < 2; i++) feed(record("Avicii", "Levels", "Levels", "levels"));
+  feed(record("Nobody", "Mystery", "No Id Album", null));
+  feed({ ts: at(2020, 1, 1), ms_played: 900000, episode_show_name: "A podcast" });
+  assert.deepEqual(tally.top(), pickAlbums(timeline()));
+  assert.deepEqual(tally.top(1).map(a => a.album), ["Holy Hell"]);
 });
 
 test("dominantColor lets a vivid accent beat a big black background", () => {
