@@ -67,6 +67,8 @@
     box.replaceChildren();
     box.hidden = !profile.covers;
     const asked = new Set();
+    // Compilation volumes are separate albums that often share one cover, so each image is shown once.
+    const shownUrls = new Set();
     const spare = [];
 
     function coverImg(a, url) {
@@ -90,7 +92,8 @@
           if (asked.has(a.trackId) || asked.size >= LOADING_COVERS * 2) continue;
           asked.add(a.trackId);
           coverQueue.get(a.trackId).then(url => {
-            if (!url || loadingCovers !== this) return;
+            if (!url || loadingCovers !== this || shownUrls.has(url)) return;
+            shownUrls.add(url);
             const img = coverImg(a, url);
             if (box.children.length < LOADING_COVERS) box.append(img);
             else spare.push(img);
