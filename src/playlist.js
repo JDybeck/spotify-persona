@@ -48,6 +48,26 @@
     return byAlbum.get(albumId) || null;
   }
 
+  // Artist id to the Spotify ID of their most played song, so an artist can be shown by that song's cover.
+  const artistCache = new WeakMap();
+  function artistTrackId(timeline, artistId) {
+    let byArtist = artistCache.get(timeline);
+    if (!byArtist) {
+      const ids = timeline.trackSpotifyIds || [];
+      const plays = new Float64Array(timeline.trackNames.length);
+      for (let i = 0; i < timeline.slot.length; i++) plays[timeline.track[i]] += timeline.plays[i];
+      const best = new Map();
+      for (let t = 0; t < timeline.trackNames.length; t++) {
+        if (!ids[t]) continue;
+        const artist = timeline.trackArtist[t];
+        if (!best.has(artist) || plays[t] > plays[best.get(artist)]) best.set(artist, t);
+      }
+      byArtist = new Map([...best].map(([artist, t]) => [artist, ids[t]]));
+      artistCache.set(timeline, byArtist);
+    }
+    return byArtist.get(artistId) || null;
+  }
+
   /** True when the export has Spotify track IDs at all (the basic account-data export does not). */
   function available(timeline) {
     return (timeline.trackSpotifyIds || []).some(Boolean);
@@ -95,5 +115,5 @@
       .map(([t, n]) => ({ track: timeline.trackNames[t], artist: timeline.artistNames[timeline.trackArtist[t]], plays: n }));
   }
 
-  return { available, idFor, albumTrackId, linksFor, topSongs, DEFAULT_SIZE };
+  return { available, idFor, albumTrackId, artistTrackId, linksFor, topSongs, DEFAULT_SIZE };
 });

@@ -96,6 +96,12 @@ button:focus-visible, label:focus-within, a:focus-visible { outline: 2px solid v
 .tier.t2 { font-size: clamp(1.4rem, 4.2vw, 2.3rem); font-weight: 800; }
 .tier.t2 > :nth-child(even) { color: var(--sunset); }
 .tier.t3 { font-size: clamp(1rem, 2.6vw, 1.35rem); font-weight: 600; color: var(--muted); }
+/* Headliner covers as faded vertical slices behind the lineup, darkened toward the middle so the names stay readable. */
+.poster { position: relative; isolation: isolate; overflow: hidden; }
+.poster-art { position: absolute; inset: 0; z-index: -1; display: flex; pointer-events: none; }
+.poster-art img { flex: 1 1 0; min-width: 0; height: 100%; object-fit: cover; opacity: 0; filter: saturate(.7) blur(1px); transition: opacity 1.2s; }
+.poster-art img.shown { opacity: .32; }
+.poster-art::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 45%, rgb(21 18 27 / .75), rgb(21 18 27 / .35) 70%, rgb(21 18 27 / .15)), linear-gradient(transparent 55%, var(--night)); }
 .poster .dates { font-family: var(--mono); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 
 /* Genre DNA */

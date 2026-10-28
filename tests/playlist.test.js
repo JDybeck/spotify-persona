@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createAggregator } = require("../src/analyze.js");
-const { available, idFor, albumTrackId, linksFor, topSongs } = require("../src/playlist.js");
+const { available, idFor, albumTrackId, artistTrackId, linksFor, topSongs } = require("../src/playlist.js");
 
 function record(y, m, d, artist, track, id, album = "Album") {
   return {
@@ -50,6 +50,14 @@ test("idFor and albumTrackId find the Spotify IDs used for covers", () => {
   assert.equal(idFor(t, "Missing", "Nobody"), null);
   assert.equal(albumTrackId(t, t.albumNames.indexOf("Levels")), "levels-single");
   assert.equal(albumTrackId(t, 999), null);
+});
+
+test("artistTrackId picks the artist's most played song that has a Spotify ID", () => {
+  const t = timeline([...history, record(2021, 7, 3, "Architects", "Animals", "animals"), record(2021, 7, 4, "Architects", "Animals", "animals")]);
+  const artist = name => t.artistNames.indexOf(name);
+  assert.equal(artistTrackId(t, artist("Architects")), "animals");
+  assert.equal(artistTrackId(t, artist("Wham!")), "xmas");
+  assert.equal(artistTrackId(t, artist("Nobody")), null);
 });
 
 test("topSongs ranks by plays, counting a song on several albums once", () => {

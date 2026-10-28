@@ -53,6 +53,7 @@
       return b;
     };
     fill("poster", [
+      posterArt(stats.topArtists.slice(0, 5), timeline),
       ...tiers.map(([a, b, cls]) => el("div", { class: `tier ${cls}` }, stats.topArtists.slice(a, b).map(artistButton))),
       el("div", { class: "dates", text: `Live in your headphones · ${stats.first} to ${stats.last}` })
     ]);
@@ -435,6 +436,25 @@
   function withThumb(item, nodes) {
     const t = thumb(item);
     return t ? [el("div", { class: "with-thumb" }, [t, el("div", { class: "with-thumb-text" }, nodes)])] : nodes;
+  }
+
+  /**
+   * A faded strip of the headliners' covers (each artist's most played song) behind the lineup, or ""
+   * when covers are off. Each slice fades in once its cover arrives, and drops out if there is none.
+   */
+  function posterArt(artists, timeline) {
+    if (!coversOn || !coverQueue) return "";
+    const playlist = SpotifyPersona.playlist;
+    const slices = artists.map(a => {
+      const id = playlist.artistTrackId(timeline, timeline.artistNames.indexOf(a.name));
+      if (!id) return null;
+      const img = el("img", { alt: "", referrerpolicy: "no-referrer", decoding: "async" });
+      img.addEventListener("load", () => img.classList.add("shown"));
+      img.addEventListener("error", () => img.remove());
+      coverQueue.get(id).then(url => (url ? (img.src = url) : img.remove()));
+      return img;
+    }).filter(Boolean);
+    return slices.length ? el("div", { class: "poster-art", "aria-hidden": "true" }, slices) : "";
   }
 
   function coverRow(items, reverse) {
