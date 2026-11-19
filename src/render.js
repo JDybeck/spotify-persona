@@ -1014,7 +1014,11 @@
     comebacksSection(stats.habits);
     seasonsSection(stats.habits);
     newYearSection(stats.habits);
-    inkSection(stats, persona);
+    // Tattoo ideas come last and are a bonus: an odd export should hide them, not break the page.
+    try { inkSection(stats, persona); } catch (err) {
+      console.error("Tattoo ideas failed", err);
+      $("inkSection").hidden = $("inkIdeasSection").hidden = true;
+    }
     $("foot").textContent = `Built from your Spotify streaming history, ${stats.first} to ${stats.last}. Hours are total time played, including skips. A play counts streams of 30 seconds or more. Times are in your browser's time zone. Nothing left this browser.`;
   }
 

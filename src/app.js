@@ -144,7 +144,8 @@
     showTab(currentTab, { scroll: false });
   }
 
-  const TABS = ["you", "music", "time", "habits", "life", "ink"];
+  // Read from the tab bar, so a new tab only needs its button and sections in the HTML.
+  const TABS = [...document.querySelectorAll("#tabs button")].map(b => b.dataset.tab);
   let currentTab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "you";
 
   /** Shows one tab's sections and gives the visible ones rotating accent colours. */
@@ -292,7 +293,9 @@
     loadingCovers = startLoadingCovers();
     // Brings the progress bar and the covers below it into view; they sit under the fold on most screens.
     drop.scrollIntoView({ block: "start" });
-    worker = new Worker("src/worker.js");
+    // The page's ?v= travels to the worker, so its scripts are fetched fresh after a release too.
+    const version = [...document.scripts].map(s => s.src.match(/app\.js(\?v=[^&]+)/)).find(Boolean);
+    worker = new Worker(`src/worker.js${version ? version[1] : ""}`);
     worker.onmessage = ({ data }) => {
       if (data.type === "progress") {
         $("bar").style.width = `${data.done / data.total * 100}%`;

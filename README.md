@@ -99,3 +99,7 @@ Your title combines your dominant genre with the habit that stands out most agai
 ## License
 
 MIT
+
+## Releasing
+
+Every script and the stylesheet in `index.html` carry the same `?v=` version, and the worker inherits it. Bump it whenever you change a file under `src/` or `css/`, so browsers never pair a new page with cached old scripts. A test checks that all the versions match.

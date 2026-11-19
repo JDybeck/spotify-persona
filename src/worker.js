@@ -1,6 +1,6 @@
 // Unzips and analyzes the export off the main thread, so the page stays responsive on large histories.
 // After the first pass it keeps a compact copy of every stream, so a new year range only re-aggregates.
-importScripts("analyze.js", "store.js", "habits.js", "unzip.js", "covers.js");
+importScripts(...["analyze.js", "store.js", "habits.js", "unzip.js", "covers.js"].map(f => f + self.location.search));
 
 const { analyze, store: storeApi, habits: habitsApi, unzip, covers } = self.SpotifyPersona;
 const JSZIP = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
