@@ -357,7 +357,10 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 7000);
   }
 
-  function showCopyFallback(text) {
+  const PLAYLIST_FALLBACK = "Your browser blocked copying. Select all of these links, copy them, then paste into a Spotify playlist.";
+
+  function showCopyFallback(text, note = PLAYLIST_FALLBACK) {
+    $("copyFallbackNote").textContent = note;
     $("copyFallbackText").value = text;
     $("copyFallback").hidden = false;
     $("copyFallbackText").focus();
@@ -955,10 +958,45 @@
       }));
   }
 
+  // Prompt preferences live only for this tab session, so a re-render (new year range) keeps them.
+  const inkPrefs = { style: "", placement: "", size: "", colour: "", notes: "" };
+
+  const PROMPT_FALLBACK = "Your browser blocked copying. Select all of this text, copy it, then paste it into your AI assistant.";
+
+  function inkPromptSection(stats, persona) {
+    const { aiPrompt, PROMPT_OPTIONS } = SpotifyPersona.tattoos;
+    const update = () => { $("inkPrompt").value = aiPrompt(stats, persona, inkPrefs); };
+    const field = (key, label, control) => el("label", {}, [el("span", { text: label }), control]);
+    const select = key => {
+      const s = el("select", {}, [el("option", { value: "", text: "Open to ideas" }), ...PROMPT_OPTIONS[key].map(o => el("option", { value: o, text: o }))]);
+      s.value = inkPrefs[key];
+      s.addEventListener("change", () => { inkPrefs[key] = s.value; update(); });
+      return s;
+    };
+    const notes = el("input", { type: "text", maxlength: "160", placeholder: "E.g. matches my other tattoo, no skulls" });
+    notes.value = inkPrefs.notes;
+    notes.addEventListener("input", () => { inkPrefs.notes = notes.value; update(); });
+    fill("inkPrefs", [
+      field("style", "Style", select("style")),
+      field("placement", "Placement", select("placement")),
+      field("size", "Size", select("size")),
+      field("colour", "Colour", select("colour")),
+      el("label", { class: "wide" }, [el("span", { text: "Anything else" }), notes])
+    ]);
+    update();
+    $("inkPromptCopy").onclick = () => {
+      const text = $("inkPrompt").value;
+      const done = () => toast("Prompt copied. Paste it into your AI assistant of choice.");
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => showCopyFallback(text, PROMPT_FALLBACK));
+      else showCopyFallback(text, PROMPT_FALLBACK);
+    };
+  }
+
   function inkSection(stats, persona) {
     const ink = SpotifyPersona.tattoos.tattooIdeas(stats, persona);
-    $("inkSection").hidden = $("inkIdeasSection").hidden = !ink;
+    $("inkSection").hidden = $("inkIdeasSection").hidden = $("inkPromptSection").hidden = !ink;
     if (!ink) return;
+    inkPromptSection(stats, persona);
     $("inkTitle").textContent = ink.theme.title;
     $("inkTheme").textContent = ink.theme.text;
     $("inkCount").textContent = ink.ideas.length === 15 ? "Fifteen ideas" : `${ink.ideas.length} ideas`;
@@ -1017,7 +1055,7 @@
     // Tattoo ideas come last and are a bonus: an odd export should hide them, not break the page.
     try { inkSection(stats, persona); } catch (err) {
       console.error("Tattoo ideas failed", err);
-      $("inkSection").hidden = $("inkIdeasSection").hidden = true;
+      $("inkSection").hidden = $("inkIdeasSection").hidden = $("inkPromptSection").hidden = true;
     }
     $("foot").textContent = `Built from your Spotify streaming history, ${stats.first} to ${stats.last}. Hours are total time played, including skips. A play counts streams of 30 seconds or more. Times are in your browser's time zone. Nothing left this browser.`;
   }

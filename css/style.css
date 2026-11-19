@@ -437,3 +437,11 @@ footer { color: var(--muted); font-size: .82rem; border-top: 1px solid var(--rul
 .ink-meta span { font: 500 .7rem var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); border: 1px solid var(--rule); border-radius: 999px; padding: 3px 9px; }
 .ink-eq { width: 100%; max-width: 220px; height: 60px; display: block; }
 .ink-eq rect { fill: var(--sunset); }
+.ink-prefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.ink-prefs label { display: grid; gap: 4px; min-width: 0; }
+.ink-prefs label.wide { grid-column: 1 / -1; }
+.ink-prefs span { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.ink-prefs select, .ink-prefs input { width: 100%; min-width: 0; font: inherit; font-size: .92rem; color: var(--ink); background: var(--stage); border: 1px solid var(--rule); border-radius: 4px; padding: 9px 10px; }
+.ink-prefs select:focus-visible, .ink-prefs input:focus-visible, .ink-prompt:focus-visible { outline: 2px solid var(--sunset); outline-offset: 1px; }
+.ink-prompt { width: 100%; height: 320px; font: .8rem/1.5 var(--mono); color: var(--ink); background: var(--night); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; resize: vertical; }
+.ink-prompt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--muted); font-size: .85rem; }

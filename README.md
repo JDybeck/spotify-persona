@@ -7,7 +7,7 @@ Drop in your Spotify data export and get a gig-poster breakdown of what your lis
 - **Time:** eras, the rise and fall of your top artists, Explore, on this day, listening clocks and summer vs winter (plus Christmas creep).
 - **Habits:** your longest session and daily streak, who picks the music (you or the algorithm) and your device history.
 - **Life:** life stages, your own chapters, birthday songs and the first song of every year.
-- **Ink:** tattoo ideas from your listening. Your overall theme, a tattoo style that fits it, the one artist and song that matter most, and 15 concepts on a flash sheet, each tied to a real number: your peak listening hour as a stopped clock, your years as equalizer bars, tally marks for your biggest repeat day, your longest streak in roman numerals and more.
+- **Ink:** tattoo ideas from your listening. Your overall theme, a tattoo style that fits it, the one artist and song that matter most, and 15 concepts on a flash sheet, each tied to a real number: your peak listening hour as a stopped clock, your years as equalizer bars, tally marks for your biggest repeat day, your longest streak in roman numerals and more. For something more personal, **Ask your favourite AI** builds an editable prompt from your listening (top artists and songs, the songs that stayed longest, eras, habits, comebacks) plus your style, placement, size and colour preferences, ready to copy into any AI assistant. Nothing is sent anywhere; it only goes to your clipboard.
 
 A **year slider** at the top filters the whole page to any span of years, and you can **hide artists** (baby music on your account, say) from every stat.
 

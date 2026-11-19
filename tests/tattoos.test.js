@@ -126,3 +126,34 @@ test("tally text reads right for small counts", () => {
 test("no artists means no ideas", () => {
   assert.equal(tattooIdeas({ topArtists: [] }, {}), null);
 });
+
+const { aiPrompt, PROMPT_OPTIONS } = require("../src/tattoos.js");
+
+test("the AI prompt carries the listening story and the ask", () => {
+  const s = stats();
+  const prompt = aiPrompt(s, buildPersona(s));
+  for (const bit of ["MY LISTENING", "MY PREFERENCES", "WHAT I'D LIKE FROM YOU", "Architects (300 h, 9 years)", '"Doomsday" by Architects (400 plays)',
+    "I listen most at 23:00", "128 days in a row", "went silent for 4 years", "deadmau5 is mostly a summer artist", "5 distinct tattoo concepts"]) {
+    assert.ok(prompt.includes(bit), bit);
+  }
+  assert.match(prompt, /What stands out is that the music gets louder after dark\. My top 10 artists are 70%/);
+  assert.match(prompt, /- Style: open to suggestions/);
+  assert.doesNotMatch(prompt, /undefined|NaN|null/);
+});
+
+test("preferences and notes are written into the prompt", () => {
+  const s = stats();
+  const prompt = aiPrompt(s, buildPersona(s), { style: PROMPT_OPTIONS.style[0], placement: "Forearm", size: "", colour: "Black and grey only", notes: "  no skulls " });
+  assert.match(prompt, /- Style: Fine line/);
+  assert.match(prompt, /- Placement: Forearm/);
+  assert.match(prompt, /- Size: open to suggestions/);
+  assert.match(prompt, /- Also: no skulls\n/);
+});
+
+test("a thin export still gives a clean prompt, and no artists gives none", () => {
+  const s = stats({ habits: undefined, trackProfiles: [], obsessions: [], recentArtists: [], topTracks: [] });
+  const prompt = aiPrompt(s, buildPersona(s));
+  assert.doesNotMatch(prompt, /undefined|NaN|null/);
+  assert.ok(!prompt.includes("Most played songs"));
+  assert.equal(aiPrompt({ topArtists: [] }, {}), "");
+});

@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Archivo:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Color+Emoji&display=swap">
   <!-- Bump ?v= on every release so browsers never mix a new page with cached old scripts. -->
-  <link rel="stylesheet" href="css/style.css?v=20261119b">
+  <link rel="stylesheet" href="css/style.css?v=20261119c">
 </head>
 <body>
 <main class="wrap" id="upload">
@@ -324,6 +324,18 @@
     <div class="ink-picks" id="inkPicks"></div>
   </section>
 
+  <section data-tab="ink" id="inkPromptSection">
+    <div class="eyebrow">Take it further</div>
+    <h2>Ask your favourite AI</h2>
+    <p class="lede">The ideas below come from templates. For something truly yours, copy this prompt into ChatGPT, Claude, Gemini or any assistant. It holds a summary of your listening and asks for concepts, questions and an artist brief. Set your preferences first if you have any.</p>
+    <div class="ink-prefs" id="inkPrefs"></div>
+    <textarea class="ink-prompt" id="inkPrompt" spellcheck="false" aria-label="AI prompt, editable"></textarea>
+    <div class="ink-prompt-actions">
+      <button type="button" class="again" id="inkPromptCopy">Copy prompt</button>
+      <span>Edit it freely. Copying only puts it on your clipboard; nothing is sent anywhere until you paste it yourself.</span>
+    </div>
+  </section>
+
   <section data-tab="ink" id="inkIdeasSection">
     <div class="eyebrow">Flash sheet, built from your numbers</div>
     <h2 id="inkCount">Fifteen ideas</h2>
@@ -339,24 +351,24 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="copy-fallback" id="copyFallback" hidden>
-  <p>Your browser blocked copying. Select all of these links, copy them, then paste into a Spotify playlist.</p>
+  <p id="copyFallbackNote">Your browser blocked copying. Select all of these links, copy them, then paste into a Spotify playlist.</p>
   <textarea id="copyFallbackText" readonly aria-label="Spotify links for the playlist"></textarea>
   <button type="button" class="again" id="copyFallbackClose">Close</button>
 </div>
 
-<script src="src/locale.js?v=20261119b"></script>
-<script src="src/genres.js?v=20261119b"></script>
-<script src="src/analyze.js?v=20261119b"></script>
-<script src="src/explore.js?v=20261119b"></script>
-<script src="src/moments.js?v=20261119b"></script>
-<script src="src/search.js?v=20261119b"></script>
-<script src="src/covers.js?v=20261119b"></script>
-<script src="src/playlist.js?v=20261119b"></script>
-<script src="src/habits.js?v=20261119b"></script>
-<script src="src/vibes.js?v=20261119b"></script>
-<script src="src/persona.js?v=20261119b"></script>
-<script src="src/tattoos.js?v=20261119b"></script>
-<script src="src/render.js?v=20261119b"></script>
-<script src="src/app.js?v=20261119b"></script>
+<script src="src/locale.js?v=20261119c"></script>
+<script src="src/genres.js?v=20261119c"></script>
+<script src="src/analyze.js?v=20261119c"></script>
+<script src="src/explore.js?v=20261119c"></script>
+<script src="src/moments.js?v=20261119c"></script>
+<script src="src/search.js?v=20261119c"></script>
+<script src="src/covers.js?v=20261119c"></script>
+<script src="src/playlist.js?v=20261119c"></script>
+<script src="src/habits.js?v=20261119c"></script>
+<script src="src/vibes.js?v=20261119c"></script>
+<script src="src/persona.js?v=20261119c"></script>
+<script src="src/tattoos.js?v=20261119c"></script>
+<script src="src/render.js?v=20261119c"></script>
+<script src="src/app.js?v=20261119c"></script>
 </body>
 </html>
