@@ -416,3 +416,24 @@ footer { color: var(--muted); font-size: .82rem; border-top: 1px solid var(--rul
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* Ink: tattoo ideas as a flash sheet. Cards get a dashed "stencil" edge and a big number. */
+.ink-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.ink-pick { background: var(--stage); border-top: 4px solid var(--sunset); border-radius: 0 0 4px 4px; padding: 18px 20px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.ink-pick .kind { font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--sunset); }
+.ink-pick h3 { font-size: 1.9rem; font-weight: 900; text-transform: uppercase; overflow-wrap: anywhere; }
+.ink-pick small { color: var(--muted); font-family: var(--mono); font-size: .78rem; }
+.ink-pick p { margin: 0; font-size: .92rem; }
+.ink-ideas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.ink-idea { position: relative; border: 1px dashed var(--bar); border-radius: 6px; padding: 18px 20px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; background: color-mix(in srgb, var(--stage) 70%, transparent); }
+.ink-idea:hover { border-color: var(--sunset); }
+.ink-no { font-family: var(--display); font-weight: 900; font-size: 2.6rem; line-height: 1; color: var(--sunset); }
+.ink-idea h3 { font-size: 1.55rem; font-weight: 900; text-transform: uppercase; overflow-wrap: anywhere; }
+.ink-idea p { margin: 0; overflow-wrap: anywhere; }
+.ink-design { font-size: .97rem; }
+.ink-basis { color: var(--muted); font-size: .85rem; }
+.ink-basis b { color: var(--ink); font-weight: 600; }
+.ink-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.ink-meta span { font: 500 .7rem var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); border: 1px solid var(--rule); border-radius: 999px; padding: 3px 9px; }
+.ink-eq { width: 100%; max-width: 220px; height: 60px; display: block; }
+.ink-eq rect { fill: var(--sunset); }

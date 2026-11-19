@@ -68,6 +68,7 @@
       <button type="button" role="tab" data-tab="time">Time</button>
       <button type="button" role="tab" data-tab="habits">Habits</button>
       <button type="button" role="tab" data-tab="life">Life</button>
+      <button type="button" role="tab" data-tab="ink">Ink</button>
     </nav>
     <span class="range-status" id="rangeStatus" role="status" aria-live="polite"></span>
     <div class="ticker" id="yearTicker" role="group" aria-label="Years">
@@ -315,6 +316,20 @@
     <div class="pl-slot" id="newYearCopy"></div>
   </section>
 
+  <section data-tab="ink" class="hero" id="inkSection">
+    <div class="eyebrow">Tattoo ideas from your listening</div>
+    <h2 id="inkTitle">Ink</h2>
+    <p class="lede" id="inkTheme"></p>
+    <div class="ink-picks" id="inkPicks"></div>
+  </section>
+
+  <section data-tab="ink" id="inkIdeasSection">
+    <div class="eyebrow">Flash sheet, built from your numbers</div>
+    <h2 id="inkCount">Fifteen ideas</h2>
+    <p class="lede">Each one starts from something real in your history. Take them to an artist as a starting point, not a stencil. Lyrics are left for you to pick, since only you know the line.</p>
+    <ol class="ink-ideas" id="inkIdeas"></ol>
+  </section>
+
   <footer>
     <span id="foot"></span>
     <button type="button" class="again" id="again">Try another zip</button>
@@ -339,6 +354,7 @@
 <script src="src/habits.js"></script>
 <script src="src/vibes.js"></script>
 <script src="src/persona.js"></script>
+<script src="src/tattoos.js"></script>
 <script src="src/render.js"></script>
 <script src="src/app.js"></script>
 </body>

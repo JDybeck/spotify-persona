@@ -1,12 +1,13 @@
 # Spotify Persona
 
-Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you, in five tabs:
+Drop in your Spotify data export and get a gig-poster breakdown of what your listening history says about you, in six tabs:
 
 - **You:** your archetype, character stats, song vibes and a few embarrassing receipts.
 - **Music:** your festival lineup, genre mix, setlist, skips, search, comebacks and the colors of your album covers.
 - **Time:** eras, the rise and fall of your top artists, Explore, on this day, listening clocks and summer vs winter (plus Christmas creep).
 - **Habits:** your longest session and daily streak, who picks the music (you or the algorithm) and your device history.
 - **Life:** life stages, your own chapters, birthday songs and the first song of every year.
+- **Ink:** tattoo ideas from your listening. Your overall theme, a tattoo style that fits it, the one artist and song that matter most, and 15 concepts on a flash sheet, each tied to a real number: your peak listening hour as a stopped clock, your years as equalizer bars, tally marks for your biggest repeat day, your longest streak in roman numerals and more.
 
 A **year slider** at the top filters the whole page to any span of years, and you can **hide artists** (baby music on your account, say) from every stat.
 

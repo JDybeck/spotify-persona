@@ -944,6 +944,42 @@
     ])));
   }
 
+  /** Tiny equalizer drawn from hours per year, so the idea shows its own shape. */
+  function equalizerSketch(bars) {
+    const max = Math.max(...bars.map(b => b.hours));
+    const w = 10, gap = 6, h = 60;
+    return svg("svg", { class: "ink-eq", viewBox: `0 0 ${bars.length * (w + gap) - gap} ${h}`, role: "img", "aria-label": "Equalizer bars, one per year" },
+      bars.map((b, i) => {
+        const bh = Math.max(3, Math.round(b.hours / max * h));
+        return svg("rect", { x: i * (w + gap), y: h - bh, width: w, height: bh, rx: 2 }, [svg("title", {}, [`${b.year}: ${fmt(b.hours)} h`])]);
+      }));
+  }
+
+  function inkSection(stats, persona) {
+    const ink = SpotifyPersona.tattoos.tattooIdeas(stats, persona);
+    $("inkSection").hidden = $("inkIdeasSection").hidden = !ink;
+    if (!ink) return;
+    $("inkTitle").textContent = ink.theme.title;
+    $("inkTheme").textContent = ink.theme.text;
+    $("inkCount").textContent = ink.ideas.length === 15 ? "Fifteen ideas" : `${ink.ideas.length} ideas`;
+    const pick = (kind, main, sub, why) => el("div", { class: "ink-pick" }, [
+      el("span", { class: "kind", text: kind }), el("h3", { text: main }), sub ? el("small", { text: sub }) : "", el("p", { text: why })
+    ]);
+    fill("inkPicks", [
+      pick("The style", ink.theme.style, null, ink.theme.styleWhy),
+      ink.artist ? pick("The artist", ink.artist.name, null, ink.artist.why) : "",
+      ink.song ? pick("The song", ink.song.track, ink.song.artist, ink.song.why) : ""
+    ]);
+    fill("inkIdeas", ink.ideas.map((idea, i) => el("li", { class: "ink-idea" }, [
+      el("span", { class: "ink-no num", text: String(i + 1).padStart(2, "0") }),
+      el("h3", { text: idea.title }),
+      idea.bars ? equalizerSketch(idea.bars) : "",
+      el("p", { class: "ink-design", text: idea.design }),
+      el("p", { class: "ink-basis" }, [el("b", { text: "Why: " }), idea.basis]),
+      el("div", { class: "ink-meta" }, [idea.style, idea.placement, idea.size].map(t => el("span", { text: t })))
+    ])));
+  }
+
   // Set on every render, so detail views opened later call the current handler.
   let onHideArtist = () => {};
 
@@ -978,6 +1014,7 @@
     comebacksSection(stats.habits);
     seasonsSection(stats.habits);
     newYearSection(stats.habits);
+    inkSection(stats, persona);
     $("foot").textContent = `Built from your Spotify streaming history, ${stats.first} to ${stats.last}. Hours are total time played, including skips. A play counts streams of 30 seconds or more. Times are in your browser's time zone. Nothing left this browser.`;
   }
 

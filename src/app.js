@@ -144,7 +144,7 @@
     showTab(currentTab, { scroll: false });
   }
 
-  const TABS = ["you", "music", "time", "habits", "life"];
+  const TABS = ["you", "music", "time", "habits", "life", "ink"];
   let currentTab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "you";
 
   /** Shows one tab's sections and gives the visible ones rotating accent colours. */
